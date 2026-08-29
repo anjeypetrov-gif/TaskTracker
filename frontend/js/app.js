@@ -34,6 +34,8 @@ document.addEventListener('alpine:init', () => {
 
         // Modals
         showDetailModal: false,
+        showUserProfileModal: false,
+        selectedUserProfile: null,
         activeTask: {},
         activeComments: [],
         newCommentText: '',
@@ -810,6 +812,39 @@ document.addEventListener('alpine:init', () => {
                 case 'done': return 'Завершена';
                 default: return status;
             }
+        },
+
+        openUserProfile(userId) {
+            if (!userId) return;
+            const targetUser = this.usersList.find(u => u.id === userId);
+            if (!targetUser) return;
+            this.selectedUserProfile = targetUser;
+            this.showUserProfileModal = true;
+            this.$nextTick(() => {
+                this.refreshIcons();
+            });
+        },
+
+        get selectedUserTasks() {
+            if (!this.selectedUserProfile) return [];
+            const uid = this.selectedUserProfile.id;
+            return this.tasks.filter(t => t.assignee_id === uid || t.creator_id === uid);
+        },
+
+        get selectedUserStats() {
+            if (!this.selectedUserProfile) return { assigned: 0, completed: 0, created: 0, bugs: 0, rate: 0 };
+            const uid = this.selectedUserProfile.id;
+            const assigned = this.tasks.filter(t => t.assignee_id === uid);
+            const completed = assigned.filter(t => t.status === 'done').length;
+            const created = this.tasks.filter(t => t.creator_id === uid).length;
+            const bugs = assigned.filter(t => t.task_type === 'bug' && t.status !== 'done').length;
+            return {
+                assigned: assigned.length,
+                completed: completed,
+                created: created,
+                bugs: bugs,
+                rate: assigned.length ? Math.round((completed / assigned.length) * 100) : 0
+            };
         }
     }));
 });

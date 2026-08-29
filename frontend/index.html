@@ -474,7 +474,7 @@
 
                             <div class="space-y-2.5 max-h-[320px] overflow-y-auto custom-scrollbar pr-1">
                                 <template x-for="u in usersList" :key="u.id">
-                                    <div class="flex items-center justify-between p-2.5 rounded-xl border border-slate-100 dark:border-slate-700/80 bg-slate-50/50 dark:bg-slate-700/30 text-xs">
+                                    <div @click="openUserProfile(u.id)" class="flex items-center justify-between p-2.5 rounded-xl border border-slate-100 dark:border-slate-700/80 bg-slate-50/50 dark:bg-slate-700/30 text-xs cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition">
                                         <div class="flex items-center space-x-2.5 min-w-0">
                                             <div class="relative shrink-0">
                                                 <div class="w-8 h-8 rounded-full text-white font-bold text-xs flex items-center justify-center shadow-xs" :style="{ backgroundColor: u.avatar_color }">
@@ -483,7 +483,7 @@
                                                 <span class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white dark:border-slate-800" :class="u.is_online ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'"></span>
                                             </div>
                                             <div class="truncate">
-                                                <div class="font-bold text-slate-800 dark:text-slate-100 truncate" x-text="u.full_name"></div>
+                                                <div class="font-bold text-slate-800 dark:text-slate-100 truncate hover:text-brand-600 transition" x-text="u.full_name"></div>
                                                 <div class="text-[10px] text-slate-400 truncate" x-text="u.role || 'Разработчик'"></div>
                                             </div>
                                         </div>
@@ -513,7 +513,7 @@
                             <!-- Audit Activity List -->
                             <div class="space-y-2 max-h-[320px] overflow-y-auto custom-scrollbar pr-1">
                                 <template x-for="act in userActivities" :key="act.id">
-                                    <div class="flex items-center justify-between p-2.5 bg-slate-50/70 dark:bg-slate-700/40 rounded-xl border border-slate-100 dark:border-slate-700 text-xs">
+                                    <div @click="openUserProfile(act.user ? act.user.id : null)" class="flex items-center justify-between p-2.5 bg-slate-50/70 dark:bg-slate-700/40 rounded-xl border border-slate-100 dark:border-slate-700 text-xs cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition">
                                         <div class="flex items-center space-x-2.5 truncate">
                                             <div class="w-7 h-7 rounded-full text-white font-bold text-[10px] flex items-center justify-center shrink-0" :style="{ backgroundColor: act.user ? act.user.avatar_color : '#3b82f6' }">
                                                 <span x-text="getInitials(act.user ? act.user.full_name : 'U')"></span>
@@ -1412,12 +1412,12 @@
                                             <span>👑 Постановщик (Автор)</span>
                                         </div>
                                         <template x-if="activeTask.creator">
-                                            <div class="flex items-center space-x-2 mt-1">
+                                            <div @click.stop="openUserProfile(activeTask.creator.id)" class="flex items-center space-x-2 mt-1 cursor-pointer hover:opacity-80 transition" title="Открыть профиль пользователя">
                                                 <div class="w-6 h-6 rounded-full text-white font-bold text-[10px] flex items-center justify-center shrink-0" :style="{ backgroundColor: activeTask.creator.avatar_color }">
                                                     <span x-text="getInitials(activeTask.creator.full_name)"></span>
                                                 </div>
                                                 <div class="truncate">
-                                                    <div class="font-semibold text-slate-800 dark:text-slate-100 truncate text-xs" x-text="activeTask.creator.full_name"></div>
+                                                    <div class="font-semibold text-slate-800 dark:text-slate-100 truncate text-xs hover:text-brand-600 transition" x-text="activeTask.creator.full_name"></div>
                                                     <div class="text-[10px] text-slate-400 truncate" x-text="activeTask.creator.role || 'Автор'"></div>
                                                 </div>
                                             </div>
@@ -1450,7 +1450,7 @@
                                         </div>
                                         <div class="flex flex-wrap gap-1 mt-1">
                                             <template x-for="w in activeTask.watchers" :key="w.id">
-                                                <div class="flex items-center space-x-1 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded text-[10px]" :title="w.full_name + ' (' + w.role + ')'">
+                                                <div @click.stop="openUserProfile(w.id)" class="flex items-center space-x-1 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 px-1.5 py-0.5 rounded text-[10px] cursor-pointer transition" :title="w.full_name + ' (' + w.role + ')'">
                                                     <span class="w-2 h-2 rounded-full shrink-0" :style="{ backgroundColor: w.avatar_color }"></span>
                                                     <span class="truncate max-w-[80px]" x-text="w.full_name.split(' ')[0]"></span>
                                                 </div>
@@ -1590,12 +1590,12 @@
                                 <template x-for="comm in activeComments" :key="comm.id">
                                     <div class="flex items-start space-x-2.5 p-2.5 rounded-xl text-xs transition" 
                                         :class="comm.content.startsWith('📢') ? 'bg-indigo-50/90 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800' : (comm.content.startsWith('⏪') ? 'bg-amber-50/90 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800' : (comm.content.startsWith('📎') ? 'bg-blue-50/90 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800' : 'bg-white dark:bg-slate-800 shadow-2xs border border-slate-200/80 dark:border-slate-700'))">
-                                        <div class="w-7 h-7 rounded-full text-white font-bold text-[10px] flex items-center justify-center shrink-0 mt-0.5 shadow-2xs" :style="{ backgroundColor: comm.author ? comm.author.avatar_color : '#3b82f6' }">
+                                        <div @click.stop="openUserProfile(comm.author ? comm.author.id : null)" class="w-7 h-7 rounded-full text-white font-bold text-[10px] flex items-center justify-center shrink-0 mt-0.5 shadow-2xs cursor-pointer hover:opacity-80 transition" :style="{ backgroundColor: comm.author ? comm.author.avatar_color : '#3b82f6' }" title="Открыть профиль">
                                             <span x-text="getInitials(comm.author ? comm.author.full_name : 'U')"></span>
                                         </div>
                                         <div class="flex-1 min-w-0">
                                             <div class="flex items-center justify-between text-[11px] mb-0.5">
-                                                <span class="font-bold text-slate-800 dark:text-slate-100 truncate" x-text="comm.author ? comm.author.full_name : 'Пользователь'"></span>
+                                                <span @click.stop="openUserProfile(comm.author ? comm.author.id : null)" class="font-bold text-slate-800 dark:text-slate-100 truncate cursor-pointer hover:text-brand-600 transition" x-text="comm.author ? comm.author.full_name : 'Пользователь'"></span>
                                                 <span class="text-slate-400 text-[9px] shrink-0" x-text="formatDate(comm.created_at)"></span>
                                             </div>
                                             <p class="text-xs text-slate-800 dark:text-slate-200 leading-snug break-words whitespace-pre-line font-sans" x-text="comm.content"></p>
@@ -1818,6 +1818,102 @@
         </div>
     </template>
 
-    <script src="js/app.js?v=23"></script>
+    <!-- ---------------- USER PROFILE MODAL ---------------- -->
+    <template x-if="showUserProfileModal && selectedUserProfile">
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs custom-scrollbar overflow-y-auto" @click.self="showUserProfileModal = false">
+            <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-200/80 dark:border-slate-700 w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+                <!-- Header Banner -->
+                <div class="h-28 bg-gradient-to-r from-brand-600 via-indigo-600 to-purple-600 relative p-6">
+                    <button @click="showUserProfileModal = false" class="absolute top-4 right-4 p-2 bg-white/20 hover:bg-white/30 text-white rounded-full transition backdrop-blur-xs">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+
+                <!-- Avatar & Core Info -->
+                <div class="px-6 pb-6 relative">
+                    <div class="flex flex-col sm:flex-row sm:items-end justify-between -mt-12 mb-6 gap-4">
+                        <div class="flex items-end space-x-4">
+                            <div class="relative">
+                                <div class="w-24 h-24 rounded-3xl text-white font-extrabold text-3xl flex items-center justify-center shadow-xl border-4 border-white dark:border-slate-800 shrink-0" :style="{ backgroundColor: selectedUserProfile.avatar_color }">
+                                    <span x-text="getInitials(selectedUserProfile.full_name)"></span>
+                                </div>
+                                <span class="absolute bottom-1 right-1 w-4 h-4 rounded-full border-2 border-white dark:border-slate-800" :class="selectedUserProfile.is_online ? 'bg-emerald-500' : 'bg-slate-400'"></span>
+                            </div>
+                            <div class="mb-1">
+                                <h2 class="text-2xl font-bold text-slate-900 dark:text-white" x-text="selectedUserProfile.full_name"></h2>
+                                <div class="flex items-center space-x-2 text-sm text-slate-500 dark:text-slate-400">
+                                    <span x-text="'@' + selectedUserProfile.username"></span>
+                                    <span>•</span>
+                                    <span class="font-semibold text-brand-600 dark:text-blue-400" x-text="selectedUserProfile.role || 'Разработчик'"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="shrink-0">
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold" :class="selectedUserProfile.is_online ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400'">
+                                <span class="w-2 h-2 rounded-full mr-1.5" :class="selectedUserProfile.is_online ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'"></span>
+                                <span x-text="selectedUserProfile.is_online ? 'В сети сейчас' : (selectedUserProfile.last_login ? 'Заходил: ' + formatDate(selectedUserProfile.last_login) : 'Не в сети')"></span>
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- User Stats KPI Grid -->
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+                        <div class="bg-slate-50 dark:bg-slate-700/50 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-700/60 text-center">
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Назначено</span>
+                            <span class="text-xl font-bold text-slate-800 dark:text-white" x-text="selectedUserStats.assigned"></span>
+                        </div>
+                        <div class="bg-emerald-50/60 dark:bg-emerald-950/40 p-3.5 rounded-2xl border border-emerald-100 dark:border-emerald-900/40 text-center">
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block mb-1">Выполнено</span>
+                            <span class="text-xl font-bold text-emerald-700 dark:text-emerald-300" x-text="selectedUserStats.completed"></span>
+                        </div>
+                        <div class="bg-blue-50/60 dark:bg-blue-950/40 p-3.5 rounded-2xl border border-blue-100 dark:border-blue-900/40 text-center">
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 block mb-1">Создано задач</span>
+                            <span class="text-xl font-bold text-blue-700 dark:text-blue-300" x-text="selectedUserStats.created"></span>
+                        </div>
+                        <div class="bg-red-50/60 dark:bg-red-950/40 p-3.5 rounded-2xl border border-red-100 dark:border-red-900/40 text-center">
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-red-600 dark:text-red-400 block mb-1">Багов в работе</span>
+                            <span class="text-xl font-bold text-red-700 dark:text-red-300" x-text="selectedUserStats.bugs"></span>
+                        </div>
+                    </div>
+
+                    <!-- Tasks Assigned To This User List -->
+                    <div class="space-y-3">
+                        <h3 class="font-bold text-sm text-slate-800 dark:text-slate-200 flex items-center justify-between">
+                            <span class="flex items-center space-x-2">
+                                <i data-lucide="layers" class="w-4 h-4 text-brand-600"></i>
+                                <span>Задачи и тикеты пользователя</span>
+                            </span>
+                            <span class="text-xs text-slate-400" x-text="selectedUserTasks.length + ' всего'"></span>
+                        </h3>
+
+                        <div class="max-h-[240px] overflow-y-auto custom-scrollbar space-y-2 pr-1">
+                            <template x-for="task in selectedUserTasks" :key="task.id">
+                                <div @click="showUserProfileModal = false; openTaskDetail(task.id)" class="p-3 bg-slate-50/80 dark:bg-slate-700/40 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl border border-slate-100 dark:border-slate-700/80 cursor-pointer transition flex items-center justify-between gap-3">
+                                    <div class="flex items-center space-x-2.5 truncate">
+                                        <span class="w-2 h-2 rounded-full shrink-0" :class="task.task_type === 'bug' ? 'bg-red-500' : getPriorityColor(task.priority)"></span>
+                                        <span x-show="task.task_type === 'bug'" class="px-1.5 py-0.2 bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300 text-[9px] font-bold rounded shrink-0">БАГ</span>
+                                        <span class="text-xs font-semibold text-slate-800 dark:text-slate-100 truncate hover:text-brand-600 transition" x-text="task.title"></span>
+                                    </div>
+                                    <div class="flex items-center space-x-2 shrink-0">
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-medium" :class="getStatusBadgeClass(task.status)" x-text="getStatusLabel(task.status)"></span>
+                                        <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400"></i>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <template x-if="selectedUserTasks.length === 0">
+                                <div class="py-6 text-center text-xs text-slate-400">
+                                    У этого пользователя пока нет привязанных задач.
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <script src="js/app.js?v=24"></script>
 </body>
 </html>
