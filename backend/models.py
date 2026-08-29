@@ -21,11 +21,24 @@ class User(Base):
     avatar_color = Column(String, default="#3b82f6")
     role = Column(String, default="Разработчик")
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    last_seen = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    last_login = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     created_tasks = relationship("Task", foreign_keys="Task.creator_id", back_populates="creator")
     assigned_tasks = relationship("Task", foreign_keys="Task.assignee_id", back_populates="assignee")
     watched_tasks = relationship("Task", secondary=task_watchers, back_populates="watchers")
     comments = relationship("Comment", back_populates="author")
+    activities = relationship("UserActivity", back_populates="user", cascade="all, delete-orphan")
+
+class UserActivity(Base):
+    __tablename__ = "user_activities"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    action = Column(String, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    user = relationship("User", back_populates="activities")
 
 class Task(Base):
     __tablename__ = "tasks"

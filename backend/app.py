@@ -8,12 +8,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, func
 
+from datetime import datetime, timezone, timedelta
 from .database import engine, Base, get_db
-from .models import User, Task, Comment, Attachment
+from .models import User, Task, Comment, Attachment, UserActivity
 from .schemas import (
     UserCreate, UserResponse, LoginRequest, Token,
     TaskCreate, TaskUpdate, TaskResponse, TaskInviteRequest,
-    CommentCreate, CommentResponse, UserStats, AttachmentResponse
+    CommentCreate, CommentResponse, UserStats, AttachmentResponse, UserActivityResponse
 )
 from .auth import hash_password, verify_password, create_access_token, get_current_user
 
@@ -46,9 +47,9 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
     if existing_user:
         raise HTTPException(status_code=400, detail="Пользователь с таким логином уже существует")
 
-    # Generate a random pastel avatar color
     colors = ["#3b82f6", "#10b981", "#ec4899", "#8b5cf6", "#f59e0b", "#06b6d4", "#6366f1"]
     avatar_color = colors[len(user_data.username) % len(colors)]
+    now = datetime.now(timezone.utc)
 
     new_user = User(
         username=user_data.username,
@@ -56,13 +57,21 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
         email=user_data.email,
         hashed_password=hash_password(user_data.password),
         avatar_color=avatar_color,
-        role=user_data.role or "Участник"
+        role=user_data.role or "Участник",
+        created_at=now,
+        last_seen=now,
+        last_login=now
     )
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
 
+    activity = UserActivity(user_id=new_user.id, action="Регистрация аккаунта", created_at=now)
+    db.add(activity)
+    db.commit()
+
     token = create_access_token({"sub": new_user.username})
+    new_user.is_online = True
     return {"access_token": token, "token_type": "bearer", "user": new_user}
 
 @app.post("/api/auth/login", response_model=Token)
@@ -71,18 +80,50 @@ def login(credentials: LoginRequest, db: Session = Depends(get_db)):
     if not user or not verify_password(credentials.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Неверный логин или пароль")
 
+    now = datetime.now(timezone.utc)
+    user.last_login = now
+    user.last_seen = now
+    activity = UserActivity(user_id=user.id, action="Вход в систему", created_at=now)
+    db.add(activity)
+    db.commit()
+    db.refresh(user)
+
     token = create_access_token({"sub": user.username})
+    user.is_online = True
     return {"access_token": token, "token_type": "bearer", "user": user}
+
+@app.post("/api/auth/ping")
+def ping_online(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return {"status": "ok", "user_id": current_user.id}
 
 @app.get("/api/auth/me", response_model=UserResponse)
 def get_me(current_user: User = Depends(get_current_user)):
+    current_user.is_online = True
     return current_user
 
 # ----------------- Users Endpoints ----------------- #
 
 @app.get("/api/users", response_model=List[UserResponse])
 def get_users(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    return db.query(User).all()
+    users = db.query(User).all()
+    now = datetime.now(timezone.utc)
+    for u in users:
+        if u.last_seen:
+            last_seen_tz = u.last_seen.replace(tzinfo=timezone.utc) if u.last_seen.tzinfo is None else u.last_seen
+            u.is_online = (now - last_seen_tz).total_seconds() < 300
+        else:
+            u.is_online = False
+    return users
+
+@app.get("/api/admin/activity", response_model=List[UserActivityResponse])
+def get_admin_activity(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    activities = db.query(UserActivity).order_by(UserActivity.created_at.desc()).limit(100).all()
+    now = datetime.now(timezone.utc)
+    for act in activities:
+        if act.user and act.user.last_seen:
+            last_seen_tz = act.user.last_seen.replace(tzinfo=timezone.utc) if act.user.last_seen.tzinfo is None else act.user.last_seen
+            act.user.is_online = (now - last_seen_tz).total_seconds() < 300
+    return activities
 
 # ----------------- Tasks Endpoints ----------------- #
 

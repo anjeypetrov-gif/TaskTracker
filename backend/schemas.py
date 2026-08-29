@@ -16,6 +16,19 @@ class UserResponse(UserBase):
     id: int
     avatar_color: str
     created_at: datetime
+    last_seen: Optional[datetime] = None
+    last_login: Optional[datetime] = None
+    is_online: Optional[bool] = False
+
+    class Config:
+        from_attributes = True
+
+class UserActivityResponse(BaseModel):
+    id: int
+    user_id: int
+    action: str
+    created_at: datetime
+    user: Optional[UserResponse] = None
 
     class Config:
         from_attributes = True

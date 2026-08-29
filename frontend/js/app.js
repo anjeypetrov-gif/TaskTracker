@@ -15,6 +15,7 @@ document.addEventListener('alpine:init', () => {
         // Data lists
         tasks: [],
         usersList: [],
+        userActivities: [],
         userStats: { total_assigned: 0, in_progress: 0, completed: 0, urgent: 0, created_by_me: 0, open_bugs_count: 0 },
         fullStats: { total_tasks: 0, completed_tasks: 0, tasks_completion_rate: 0, total_bugs: 0, fixed_bugs: 0, bugs_resolution_rate: 0, critical_bugs: 0, status_breakdown: {}, bug_severity_breakdown: {}, priority_breakdown: {}, user_performance: [] },
         
@@ -273,20 +274,44 @@ document.addEventListener('alpine:init', () => {
             this.tasks = [];
         },
 
+        get onlineUsersCount() {
+            if (!this.usersList) return 0;
+            return this.usersList.filter(u => u.is_online).length;
+        },
+
         // Load Data
         async loadInitialData() {
             await Promise.all([
                 this.fetchUsers(),
                 this.fetchTasks(),
                 this.fetchUserStats(),
-                this.fetchFullStats()
+                this.fetchFullStats(),
+                this.fetchUserActivities()
             ]);
+            this.startHeartbeat();
             this.refreshIcons();
+        },
+
+        startHeartbeat() {
+            if (this._pingInterval) clearInterval(this._pingInterval);
+            this._pingInterval = setInterval(() => {
+                if (this.isAuthenticated) {
+                    this.apiFetch('/api/auth/ping', { method: 'POST' }).catch(() => {});
+                    this.fetchUsers();
+                    this.fetchUserActivities();
+                }
+            }, 20000);
         },
 
         async fetchUsers() {
             try {
                 this.usersList = await this.apiFetch('/api/users');
+            } catch (e) { console.error(e); }
+        },
+
+        async fetchUserActivities() {
+            try {
+                this.userActivities = await this.apiFetch('/api/admin/activity');
             } catch (e) { console.error(e); }
         },
 
