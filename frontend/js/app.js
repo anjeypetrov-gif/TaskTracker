@@ -826,6 +826,17 @@ document.addEventListener('alpine:init', () => {
 
         openUserProfile(userId) {
             if (!userId) return;
+            // The team list (/api/users) no longer includes payment_details —
+            // it's private financial info and the API only returns it for the
+            // logged-in user's own account. When viewing your own profile,
+            // use currentUser (which does have it) instead of the stripped
+            // entry from usersList.
+            if (this.currentUser && userId === this.currentUser.id) {
+                this.selectedUserProfile = this.currentUser;
+                this.showUserProfileModal = true;
+                this.$nextTick(() => this.refreshIcons());
+                return;
+            }
             const targetUser = this.usersList.find(u => u.id === userId);
             if (!targetUser) return;
             this.selectedUserProfile = targetUser;

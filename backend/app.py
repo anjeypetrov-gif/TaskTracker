@@ -1,6 +1,5 @@
 import os
 import uuid
-import shutil
 from typing import List, Optional
 from fastapi import FastAPI, Depends, HTTPException, status, Query, UploadFile, File
 from fastapi.staticfiles import StaticFiles
@@ -12,7 +11,7 @@ from datetime import datetime, timezone, timedelta
 from .database import engine, Base, get_db
 from .models import User, Task, Comment, Attachment, UserActivity
 from .schemas import (
-    UserCreate, UserResponse, UserUpdate, LoginRequest, Token,
+    UserCreate, UserResponse, UserPublic, UserUpdate, LoginRequest, Token,
     TaskCreate, TaskUpdate, TaskResponse, TaskInviteRequest,
     CommentCreate, CommentResponse, UserStats, AttachmentResponse, UserActivityResponse
 )
@@ -27,14 +26,70 @@ os.makedirs(UPLOADS_DIR, exist_ok=True)
 
 app = FastAPI(title="TaskTracker API", version="1.0.0")
 
-# Enable CORS for local dev
+# Enable CORS for local dev.
+# NOTE: allow_credentials=True cannot safely be combined with allow_origins=["*"]
+# (browsers reject that combination, and it's unsafe if it worked). We don't
+# use cookie-based auth here — every request carries its own Bearer token —
+# so allow_credentials stays False.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.on_event("startup")
+def on_startup():
+    try:
+        from .seed import seed_db
+        seed_db()
+    except Exception as e:
+        print(f"Startup seed error: {e}")
+
+# ----------------- Upload Safety Limits ----------------- #
+
+MAX_UPLOAD_SIZE_BYTES = 20 * 1024 * 1024  # 20 MB per file
+
+# Extensions that must never be accepted: anything a browser could execute
+# or render as active content if opened directly from /uploads (same origin
+# as the app), which would otherwise allow stored XSS via file upload.
+BLOCKED_UPLOAD_EXTENSIONS = {
+    ".html", ".htm", ".svg", ".xhtml", ".js", ".mjs", ".php", ".phtml",
+    ".exe", ".sh", ".bat", ".cmd", ".ps1", ".msi", ".jar", ".com", ".scr",
+}
+
+def validate_upload(file: UploadFile) -> None:
+    ext = os.path.splitext(file.filename or "")[1].lower()
+    if ext in BLOCKED_UPLOAD_EXTENSIONS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Файлы с расширением '{ext}' запрещены к загрузке из соображений безопасности"
+        )
+
+def save_upload_capped(file: UploadFile, destination_path: str) -> int:
+    """Copy an UploadFile to disk while enforcing MAX_UPLOAD_SIZE_BYTES,
+    without ever buffering the whole file in memory."""
+    total = 0
+    chunk_size = 1024 * 1024
+    with open(destination_path, "wb") as buffer:
+        while True:
+            chunk = file.file.read(chunk_size)
+            if not chunk:
+                break
+            total += len(chunk)
+            if total > MAX_UPLOAD_SIZE_BYTES:
+                buffer.close()
+                try:
+                    os.remove(destination_path)
+                except Exception:
+                    pass
+                raise HTTPException(
+                    status_code=413,
+                    detail=f"Файл превышает максимально допустимый размер ({MAX_UPLOAD_SIZE_BYTES // (1024*1024)} МБ)"
+                )
+            buffer.write(chunk)
+    return total
 
 # Mount uploads static folder
 app.mount("/uploads", StaticFiles(directory=UPLOADS_DIR), name="uploads")
@@ -131,6 +186,7 @@ def upload_avatar(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    validate_upload(file)
     avatars_dir = os.path.join(UPLOADS_DIR, "avatars")
     os.makedirs(avatars_dir, exist_ok=True)
 
@@ -138,8 +194,7 @@ def upload_avatar(
     filename = f"avatar_{current_user.id}_{uuid.uuid4().hex[:8]}{ext}"
     file_path = os.path.join(avatars_dir, filename)
 
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    save_upload_capped(file, file_path)
 
     current_user.avatar_url = f"/uploads/avatars/{filename}"
     db.commit()
@@ -149,7 +204,7 @@ def upload_avatar(
 
 # ----------------- Users Endpoints ----------------- #
 
-@app.get("/api/users", response_model=List[UserResponse])
+@app.get("/api/users", response_model=List[UserPublic])
 def get_users(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     users = db.query(User).all()
     now = datetime.now(timezone.utc)
@@ -382,14 +437,12 @@ async def upload_attachment(
     if not task:
         raise HTTPException(status_code=404, detail="Задача не найдена")
 
+    validate_upload(file)
     file_ext = os.path.splitext(file.filename)[1]
     unique_filename = f"{uuid.uuid4().hex}{file_ext}"
     saved_file_path = os.path.join(UPLOADS_DIR, unique_filename)
 
-    with open(saved_file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-
-    file_size = os.path.getsize(saved_file_path)
+    file_size = save_upload_capped(file, saved_file_path)
     public_url = f"/uploads/{unique_filename}"
 
     new_attachment = Attachment(
@@ -416,14 +469,12 @@ async def upload_batch_attachments(
 
     attachments = []
     for file in files:
+        validate_upload(file)
         file_ext = os.path.splitext(file.filename)[1]
         unique_filename = f"{uuid.uuid4().hex}{file_ext}"
         saved_file_path = os.path.join(UPLOADS_DIR, unique_filename)
 
-        with open(saved_file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-
-        file_size = os.path.getsize(saved_file_path)
+        file_size = save_upload_capped(file, saved_file_path)
         public_url = f"/uploads/{unique_filename}"
 
         new_attachment = Attachment(

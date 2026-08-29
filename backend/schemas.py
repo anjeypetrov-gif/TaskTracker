@@ -9,7 +9,6 @@ class UserBase(BaseModel):
     email: Optional[str] = None
     role: Optional[str] = "Разработчик"
     role_description: Optional[str] = None
-    payment_details: Optional[str] = None
     avatar_url: Optional[str] = None
 
 class UserCreate(UserBase):
@@ -23,7 +22,11 @@ class UserUpdate(BaseModel):
     payment_details: Optional[str] = None
     avatar_color: Optional[str] = None
 
-class UserResponse(UserBase):
+class UserPublic(UserBase):
+    """Safe-to-share user profile — this is what teammates see about each
+    other (task lists, comments, watchers, activity feed). Deliberately
+    excludes payment_details: that field is financial/personal data and
+    must never be exposed to anyone but its owner."""
     id: int
     avatar_color: str
     created_at: datetime
@@ -34,12 +37,17 @@ class UserResponse(UserBase):
     class Config:
         from_attributes = True
 
+class UserResponse(UserPublic):
+    """Full profile including private fields — only ever returned for the
+    authenticated user's own account (login/register/me/update-profile)."""
+    payment_details: Optional[str] = None
+
 class UserActivityResponse(BaseModel):
     id: int
     user_id: int
     action: str
     created_at: datetime
-    user: Optional[UserResponse] = None
+    user: Optional[UserPublic] = None
 
     class Config:
         from_attributes = True
@@ -63,7 +71,7 @@ class CommentResponse(BaseModel):
     task_id: int
     content: str
     created_at: datetime
-    author: UserResponse
+    author: UserPublic
 
     class Config:
         from_attributes = True
@@ -117,9 +125,9 @@ class TaskResponse(TaskBase):
     creator_id: int
     created_at: datetime
     updated_at: datetime
-    creator: UserResponse
-    assignee: Optional[UserResponse] = None
-    watchers: Optional[List[UserResponse]] = []
+    creator: UserPublic
+    assignee: Optional[UserPublic] = None
+    watchers: Optional[List[UserPublic]] = []
     comments_count: Optional[int] = 0
     attachments: Optional[List[AttachmentResponse]] = []
 

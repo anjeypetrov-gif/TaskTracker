@@ -1,6 +1,11 @@
 import os
+from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
+
+# Load variables from a local .env file if present (SECRET_KEY, DATABASE_URL, etc).
+# Harmless in production where real env vars are already set by the platform.
+load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 

@@ -1,4 +1,6 @@
 import os
+import secrets
+import warnings
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 import jwt
@@ -9,7 +11,7 @@ from sqlalchemy.orm import Session
 from .database import get_db
 from .models import User
 
-SECRET_KEY = "super-secret-key-task-tracker-change-in-prod"
+SECRET_KEY = os.getenv("SECRET_KEY", "tasktracker-secret-stable-key-2026-production-v1")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7 # 1 week
 
