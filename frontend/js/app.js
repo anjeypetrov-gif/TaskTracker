@@ -202,7 +202,8 @@ document.addEventListener('alpine:init', () => {
         // API Helper with Bearer Token
         async apiFetch(url, options = {}) {
             options.headers = options.headers || {};
-            if (this.token) {
+            const isAuthRoute = url.includes('/api/auth/login') || url.includes('/api/auth/register');
+            if (this.token && !isAuthRoute && !options.skipAuth) {
                 options.headers['Authorization'] = `Bearer ${this.token}`;
             }
             if (options.body && typeof options.body === 'object' && !(options.body instanceof FormData)) {
@@ -211,7 +212,7 @@ document.addEventListener('alpine:init', () => {
             }
 
             const response = await fetch(url, options);
-            if (response.status === 401) {
+            if (response.status === 401 && !isAuthRoute) {
                 this.logout();
                 throw new Error('Сессия истекла. Пожалуйста, войдите снова.');
             }
