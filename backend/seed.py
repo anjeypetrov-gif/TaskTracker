@@ -139,7 +139,7 @@ def seed_db():
     t4 = Task(
         title="Тестирование адаптивности двухколоночного модального окна",
         description="Проверить корректность отображения чата и блока задачи на мобильных устройствах (ширина от 360px до 768px).",
-        status="todo",
+        status="in_progress",
         priority="low",
         creator_id=u_maria.id,
         assignee_id=u_elena.id,

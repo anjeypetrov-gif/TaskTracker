@@ -803,7 +803,7 @@ document.addEventListener('alpine:init', () => {
 
         getStatusLabel(status) {
             switch (status) {
-                case 'todo': return 'К выполнению';
+                case 'todo': return 'В работе';
                 case 'in_progress': return 'В работе';
                 case 'in_review': return 'На проверке';
                 case 'done': return 'Завершена';
