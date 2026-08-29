@@ -203,7 +203,9 @@ document.addEventListener('alpine:init', () => {
             this.$nextTick(() => lucide.createIcons());
 
             if (this.token) {
-                this.loadInitialData();
+                this.loadInitialData().catch(err => {
+                    console.warn("Initial data load error:", err);
+                });
             }
         },
 
