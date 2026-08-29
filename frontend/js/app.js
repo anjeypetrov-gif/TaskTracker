@@ -1,5 +1,5 @@
-document.addEventListener('alpine:init', () => {
-    Alpine.data('taskTrackerApp', () => ({
+function taskTrackerApp() {
+    return {
         // State
         token: localStorage.getItem('tt_token') || '',
         currentUser: JSON.parse(localStorage.getItem('tt_user') || '{}'),
@@ -923,5 +923,14 @@ document.addEventListener('alpine:init', () => {
                 alert(e.message);
             }
         }
-    }));
+    };
+}
+
+window.taskTrackerApp = taskTrackerApp;
+
+if (window.Alpine) {
+    Alpine.data('taskTrackerApp', taskTrackerApp);
+}
+document.addEventListener('alpine:init', () => {
+    Alpine.data('taskTrackerApp', taskTrackerApp);
 });
