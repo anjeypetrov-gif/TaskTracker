@@ -1,0 +1,1729 @@
+<!DOCTYPE html>
+<html lang="ru" x-data="taskTrackerApp()" :class="{ 'dark': darkMode }">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskTracker — Системное управление задачами и багами</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        [x-cloak] { display: none !important; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col transition-colors duration-200" x-cloak>
+
+    <!-- ----------------- AUTH SCREEN ----------------- -->
+    <template x-if="!isAuthenticated">
+        <div class="min-h-screen flex flex-col justify-center items-center px-4 bg-gradient-to-br from-slate-100 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-950">
+            <div class="w-full max-w-md bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 p-8">
+                <!-- App Logo -->
+                <div class="flex items-center justify-center space-x-3 mb-6">
+                    <div class="bg-brand-600 text-white p-3 rounded-xl shadow-md">
+                        <i data-lucide="check-square" class="w-7 h-7"></i>
+                    </div>
+                    <span class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-brand-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400">
+                        TaskTracker
+                    </span>
+                </div>
+
+                <!-- Auth Tabs -->
+                <div class="flex border-b border-slate-200 dark:border-slate-700 mb-6">
+                    <button 
+                        @click="authMode = 'login'" 
+                        :class="{ 'border-brand-600 text-brand-600 dark:text-blue-400 font-semibold': authMode === 'login', 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400': authMode !== 'login' }"
+                        class="flex-1 py-2 text-center border-b-2 transition-colors">
+                        Вход
+                    </button>
+                    <button 
+                        @click="authMode = 'register'" 
+                        :class="{ 'border-brand-600 text-brand-600 dark:text-blue-400 font-semibold': authMode === 'register', 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400': authMode !== 'register' }"
+                        class="flex-1 py-2 text-center border-b-2 transition-colors">
+                        Регистрация
+                    </button>
+                </div>
+
+                <!-- Error Alert -->
+                <template x-if="authError">
+                    <div class="mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg text-red-600 dark:text-red-400 text-sm flex items-center gap-2">
+                        <i data-lucide="alert-circle" class="w-4 h-4 shrink-0"></i>
+                        <span x-text="authError"></span>
+                    </div>
+                </template>
+
+                <!-- Login Form -->
+                <form x-show="authMode === 'login'" @submit.prevent="login">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1">Логин</label>
+                            <input type="text" x-model="loginForm.username" required class="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition" placeholder="Введите логин">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1">Пароль</label>
+                            <input type="password" x-model="loginForm.password" required class="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition" placeholder="••••••••">
+                        </div>
+                        <button type="submit" class="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white font-medium rounded-lg shadow-md hover:shadow-lg transition-all flex items-center justify-center space-x-2">
+                            <span>Войти</span>
+                            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Register Form -->
+                <form x-show="authMode === 'register'" @submit.prevent="register">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1">Логин</label>
+                            <input type="text" x-model="registerForm.username" required class="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition" placeholder="alex">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1">Полное имя</label>
+                            <input type="text" x-model="registerForm.full_name" required class="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition" placeholder="Алексей Смирнов">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1">Email</label>
+                            <input type="email" x-model="registerForm.email" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition" placeholder="alex@company.ru">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1">Должность / Роль</label>
+                            <input type="text" x-model="registerForm.role" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition" placeholder="Разработчик">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1">Пароль</label>
+                            <input type="password" x-model="registerForm.password" required class="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition" placeholder="••••••••">
+                        </div>
+                        <button type="submit" class="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white font-medium rounded-lg shadow-md hover:shadow-lg transition-all flex items-center justify-center space-x-2">
+                            <span>Зарегистрироваться</span>
+                            <i data-lucide="user-plus" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Quick Demo Login Buttons -->
+                <div class="mt-8 pt-6 border-t border-slate-200 dark:border-slate-700">
+                    <p class="text-xs text-center text-slate-500 dark:text-slate-400 mb-3 uppercase tracking-wider font-semibold">Быстрый демо-вход</p>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button @click="quickLogin('admin', 'admin123')" class="px-3 py-2 text-xs bg-slate-100 dark:bg-slate-700 hover:bg-blue-50 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-lg transition text-left flex items-center space-x-2">
+                            <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+                            <span class="truncate">admin (PM)</span>
+                        </button>
+                        <button @click="quickLogin('alex', 'alex123')" class="px-3 py-2 text-xs bg-slate-100 dark:bg-slate-700 hover:bg-green-50 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-lg transition text-left flex items-center space-x-2">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                            <span class="truncate">alex (Frontend)</span>
+                        </button>
+                        <button @click="quickLogin('maria', 'maria123')" class="px-3 py-2 text-xs bg-slate-100 dark:bg-slate-700 hover:bg-pink-50 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-lg transition text-left flex items-center space-x-2">
+                            <span class="w-2 h-2 rounded-full bg-pink-500"></span>
+                            <span class="truncate">maria (UI/UX)</span>
+                        </button>
+                        <button @click="quickLogin('dmitry', 'dmitry123')" class="px-3 py-2 text-xs bg-slate-100 dark:bg-slate-700 hover:bg-purple-50 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-lg transition text-left flex items-center space-x-2">
+                            <span class="w-2 h-2 rounded-full bg-purple-500"></span>
+                            <span class="truncate">dmitry (Backend)</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- ----------------- MAIN APP SCREEN ----------------- -->
+    <template x-if="isAuthenticated">
+        <div class="min-h-screen flex flex-col">
+            <!-- Navigation Header -->
+            <header class="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-30 shadow-sm">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+                    
+                    <!-- Left: Logo + Navigation Tabs -->
+                    <div class="flex items-center space-x-6 lg:space-x-8">
+                        <div class="flex items-center space-x-3 cursor-pointer" @click="activeTab = 'cabinet'">
+                            <div class="bg-brand-600 text-white p-2 rounded-lg shadow-sm">
+                                <i data-lucide="check-square" class="w-5 h-5"></i>
+                            </div>
+                            <span class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-brand-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400">
+                                TaskTracker
+                            </span>
+                        </div>
+
+                        <nav class="hidden md:flex space-x-1">
+                            <button @click="activeTab = 'cabinet'" 
+                                :class="activeTab === 'cabinet' ? 'bg-slate-100 text-brand-600 dark:bg-slate-700 dark:text-blue-400 font-semibold' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50'"
+                                class="px-3 py-2 rounded-lg text-sm transition flex items-center space-x-2">
+                                <i data-lucide="user" class="w-4 h-4"></i>
+                                <span>Кабинет</span>
+                            </button>
+                            <button @click="activeTab = 'kanban'" 
+                                :class="activeTab === 'kanban' ? 'bg-slate-100 text-brand-600 dark:bg-slate-700 dark:text-blue-400 font-semibold' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50'"
+                                class="px-3 py-2 rounded-lg text-sm transition flex items-center space-x-2">
+                                <i data-lucide="kanban" class="w-4 h-4"></i>
+                                <span>Kanban Доска</span>
+                            </button>
+                            <button @click="activeTab = 'list'" 
+                                :class="activeTab === 'list' ? 'bg-slate-100 text-brand-600 dark:bg-slate-700 dark:text-blue-400 font-semibold' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50'"
+                                class="px-3 py-2 rounded-lg text-sm transition flex items-center space-x-2">
+                                <i data-lucide="list-todo" class="w-4 h-4"></i>
+                                <span>Все задачи</span>
+                            </button>
+                            <button @click="activeTab = 'bugs'" 
+                                :class="activeTab === 'bugs' ? 'bg-red-50 text-red-600 dark:bg-red-950/50 dark:text-red-400 font-semibold' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50'"
+                                class="px-3 py-2 rounded-lg text-sm transition flex items-center space-x-2 relative">
+                                <i data-lucide="bug" class="w-4 h-4 text-red-500"></i>
+                                <span>Баг трекер</span>
+                                <span x-show="userStats.open_bugs_count" class="bg-red-500 text-white text-[10px] px-1.5 py-0.2 rounded-full font-bold" x-text="userStats.open_bugs_count"></span>
+                            </button>
+                            <button @click="activeTab = 'calendar'" 
+                                :class="activeTab === 'calendar' ? 'bg-amber-50 text-amber-600 dark:bg-amber-950/50 dark:text-amber-400 font-semibold' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50'"
+                                class="px-3 py-2 rounded-lg text-sm transition flex items-center space-x-2">
+                                <i data-lucide="calendar" class="w-4 h-4 text-amber-500"></i>
+                                <span>Календарь</span>
+                            </button>
+                            <button @click="activeTab = 'analytics'; fetchFullStats()" 
+                                :class="activeTab === 'analytics' ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-950/50 dark:text-indigo-400 font-semibold' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50'"
+                                class="px-3 py-2 rounded-lg text-sm transition flex items-center space-x-2">
+                                <i data-lucide="bar-chart-3" class="w-4 h-4 text-indigo-500"></i>
+                                <span>Аналитика</span>
+                            </button>
+                        </nav>
+                    </div>
+
+                    <!-- Right: Search, Create Buttons, User Dropdown -->
+                    <div class="flex items-center space-x-2.5">
+                        <!-- Search Box -->
+                        <div class="relative hidden sm:block">
+                            <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                            <input type="text" x-model="searchQuery" @input.debounce.300ms="fetchTasks()" placeholder="Поиск..." class="pl-9 pr-4 py-1.5 text-xs bg-slate-100 dark:bg-slate-700 border-none rounded-lg focus:ring-2 focus:ring-brand-500 text-slate-800 dark:text-slate-100 outline-none w-32 lg:w-48">
+                        </div>
+
+                        <!-- Compact Report Bug Button -->
+                        <button @click="openCreateBugModal()" class="px-2.5 py-1.5 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg text-xs font-semibold transition flex items-center space-x-1" title="Сообщить о баге">
+                            <i data-lucide="bug" class="w-3.5 h-3.5 text-red-500"></i>
+                            <span class="hidden sm:inline">Баг</span>
+                        </button>
+
+                        <!-- Create Task Button -->
+                        <button @click="openCreateModal()" class="bg-brand-600 hover:bg-brand-700 text-white text-xs font-medium px-3 py-1.5 rounded-lg shadow-sm hover:shadow transition flex items-center space-x-1">
+                            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                            <span>Задача</span>
+                        </button>
+
+                        <!-- Theme Toggle -->
+                        <button @click="darkMode = !darkMode" class="p-1.5 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition">
+                            <i x-show="!darkMode" data-lucide="moon" class="w-4.5 h-4.5"></i>
+                            <i x-show="darkMode" data-lucide="sun" class="w-4.5 h-4.5"></i>
+                        </button>
+
+                        <!-- User Profile Menu -->
+                        <div class="relative" x-data="{ open: false }">
+                            <button @click="open = !open" class="flex items-center space-x-2 focus:outline-none p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700">
+                                <div class="w-7 h-7 rounded-full text-white font-semibold text-xs flex items-center justify-center shadow-sm" :style="{ backgroundColor: currentUser.avatar_color }">
+                                    <span x-text="getInitials(currentUser.full_name)"></span>
+                                </div>
+                                <span class="text-xs font-medium hidden lg:inline" x-text="currentUser.full_name"></span>
+                                <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400"></i>
+                            </button>
+
+                            <!-- Dropdown -->
+                            <div x-show="open" @click.away="open = false" class="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 py-1 z-50">
+                                <div class="px-4 py-2 border-b border-slate-100 dark:border-slate-700">
+                                    <p class="text-sm font-semibold truncate" x-text="currentUser.full_name"></p>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400 truncate" x-text="'@' + currentUser.username"></p>
+                                </div>
+                                <button @click="activeTab = 'cabinet'; open = false" class="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center space-x-2">
+                                    <i data-lucide="user" class="w-4 h-4"></i>
+                                    <span>Профиль</span>
+                                </button>
+                                <button @click="logout()" class="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center space-x-2">
+                                    <i data-lucide="log-out" class="w-4 h-4"></i>
+                                    <span>Выйти</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mobile Nav Bar -->
+                <div class="flex md:hidden border-t border-slate-200 dark:border-slate-700 px-2 py-1 justify-around">
+                    <button @click="activeTab = 'cabinet'" :class="activeTab === 'cabinet' ? 'text-brand-600 dark:text-blue-400 font-semibold' : 'text-slate-600 dark:text-slate-400'" class="py-1.5 px-2 text-xs flex flex-col items-center">
+                        <i data-lucide="user" class="w-4 h-4 mb-0.5"></i>
+                        <span>Кабинет</span>
+                    </button>
+                    <button @click="activeTab = 'kanban'" :class="activeTab === 'kanban' ? 'text-brand-600 dark:text-blue-400 font-semibold' : 'text-slate-600 dark:text-slate-400'" class="py-1.5 px-2 text-xs flex flex-col items-center">
+                        <i data-lucide="kanban" class="w-4 h-4 mb-0.5"></i>
+                        <span>Kanban</span>
+                    </button>
+                    <button @click="activeTab = 'list'" :class="activeTab === 'list' ? 'text-brand-600 dark:text-blue-400 font-semibold' : 'text-slate-600 dark:text-slate-400'" class="py-1.5 px-2 text-xs flex flex-col items-center">
+                        <i data-lucide="list-todo" class="w-4 h-4 mb-0.5"></i>
+                        <span>Задачи</span>
+                    </button>
+                    <button @click="activeTab = 'bugs'" :class="activeTab === 'bugs' ? 'text-red-600 font-semibold' : 'text-slate-600 dark:text-slate-400'" class="py-1.5 px-2 text-xs flex flex-col items-center">
+                        <i data-lucide="bug" class="w-4 h-4 mb-0.5 text-red-500"></i>
+                        <span>Баги</span>
+                    </button>
+                    <button @click="activeTab = 'calendar'" :class="activeTab === 'calendar' ? 'text-amber-600 font-semibold' : 'text-slate-600 dark:text-slate-400'" class="py-1.5 px-2 text-xs flex flex-col items-center">
+                        <i data-lucide="calendar" class="w-4 h-4 mb-0.5 text-amber-500"></i>
+                        <span>Календарь</span>
+                    </button>
+                    <button @click="activeTab = 'analytics'; fetchFullStats()" :class="activeTab === 'analytics' ? 'text-indigo-600 font-semibold' : 'text-slate-600 dark:text-slate-400'" class="py-1.5 px-2 text-xs flex flex-col items-center">
+                        <i data-lucide="bar-chart-3" class="w-4 h-4 mb-0.5 text-indigo-500"></i>
+                        <span>Аналитика</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Main Workspace Body -->
+            <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+                <!-- ---------------- TAB 1: PERSONAL CABINET ---------------- -->
+                <div x-show="activeTab === 'cabinet'">
+                    <!-- Profile Banner -->
+                    <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-slate-200/80 dark:border-slate-700 mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                        <div class="flex items-center space-x-5">
+                            <div class="w-16 h-16 rounded-2xl text-white font-bold text-2xl flex items-center justify-center shadow-md shrink-0" :style="{ backgroundColor: currentUser.avatar_color }">
+                                <span x-text="getInitials(currentUser.full_name)"></span>
+                            </div>
+                            <div>
+                                <h1 class="text-2xl font-bold" x-text="currentUser.full_name"></h1>
+                                <div class="flex items-center space-x-3 mt-1 text-sm text-slate-500 dark:text-slate-400">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300" x-text="currentUser.role || 'Участник'"></span>
+                                    <span>•</span>
+                                    <span x-text="'@' + currentUser.username"></span>
+                                    <span x-show="currentUser.email">•</span>
+                                    <span x-show="currentUser.email" x-text="currentUser.email"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center space-x-2.5 w-full md:w-auto">
+                            <button @click="openCreateModal()" class="w-full md:w-auto px-3.5 py-2 bg-brand-600 hover:bg-brand-700 text-white text-xs font-medium rounded-xl shadow transition flex items-center justify-center space-x-1.5">
+                                <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                                <span>Новая задача</span>
+                            </button>
+                            <button @click="openCreateBugModal()" class="w-full md:w-auto px-3 py-2 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 text-xs font-semibold rounded-xl transition flex items-center justify-center space-x-1.5">
+                                <i data-lucide="bug" class="w-4 h-4 text-red-500"></i>
+                                <span>Сообщить о баге</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Metrics Dashboard Grid -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+                        <!-- Stat 1: Assigned to me -->
+                        <div class="bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-sm border border-slate-200/80 dark:border-slate-700 flex items-center justify-between">
+                            <div>
+                                <p class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Назначено мне</p>
+                                <h3 class="text-2xl font-bold mt-1 text-slate-900 dark:text-white" x-text="userStats.total_assigned || 0"></h3>
+                            </div>
+                            <div class="p-2.5 bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 rounded-xl">
+                                <i data-lucide="user-check" class="w-5 h-5"></i>
+                            </div>
+                        </div>
+
+                        <!-- Stat 2: In Progress -->
+                        <div class="bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-sm border border-slate-200/80 dark:border-slate-700 flex items-center justify-between">
+                            <div>
+                                <p class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">В работе</p>
+                                <h3 class="text-2xl font-bold mt-1 text-amber-600 dark:text-amber-400" x-text="userStats.in_progress || 0"></h3>
+                            </div>
+                            <div class="p-2.5 bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-400 rounded-xl">
+                                <i data-lucide="clock" class="w-5 h-5"></i>
+                            </div>
+                        </div>
+
+                        <!-- Stat 3: Urgent Tasks -->
+                        <div class="bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-sm border border-slate-200/80 dark:border-slate-700 flex items-center justify-between">
+                            <div>
+                                <p class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Срочные задачи</p>
+                                <h3 class="text-2xl font-bold mt-1 text-orange-600 dark:text-orange-400" x-text="userStats.urgent || 0"></h3>
+                            </div>
+                            <div class="p-2.5 bg-orange-50 dark:bg-orange-950 text-orange-600 dark:text-orange-400 rounded-xl">
+                                <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+                            </div>
+                        </div>
+
+                        <!-- Stat 4: Open Bugs -->
+                        <div class="bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-sm border border-slate-200/80 dark:border-slate-700 flex items-center justify-between cursor-pointer hover:border-red-300 transition" @click="activeTab = 'bugs'">
+                            <div>
+                                <p class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Открытые баги</p>
+                                <h3 class="text-2xl font-bold mt-1 text-red-600 dark:text-red-400" x-text="userStats.open_bugs_count || 0"></h3>
+                            </div>
+                            <div class="p-2.5 bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400 rounded-xl">
+                                <i data-lucide="bug" class="w-5 h-5"></i>
+                            </div>
+                        </div>
+
+                        <!-- Stat 5: Completed -->
+                        <div class="bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-sm border border-slate-200/80 dark:border-slate-700 flex items-center justify-between">
+                            <div>
+                                <p class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Выполнено</p>
+                                <h3 class="text-2xl font-bold mt-1 text-emerald-600 dark:text-emerald-400" x-text="userStats.completed || 0"></h3>
+                            </div>
+                            <div class="p-2.5 bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 rounded-xl">
+                                <i data-lucide="check-circle" class="w-5 h-5"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- My Active Tasks Table / List -->
+                    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200/80 dark:border-slate-700 p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h2 class="text-lg font-bold flex items-center space-x-2">
+                                <i data-lucide="list-checks" class="w-5 h-5 text-brand-600"></i>
+                                <span>Мои текущие задачи и баги</span>
+                            </h2>
+                            <button @click="activeTab = 'kanban'" class="text-xs text-brand-600 hover:text-brand-700 dark:text-blue-400 font-medium flex items-center space-x-1">
+                                <span>Открыть Kanban</span>
+                                <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>
+
+                        <!-- Task Items -->
+                        <div class="divide-y divide-slate-100 dark:divide-slate-700">
+                            <template x-for="task in myActiveTasks" :key="task.id">
+                                <div class="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50/80 dark:hover:bg-slate-700/40 p-2 rounded-xl transition">
+                                    <div class="flex items-start space-x-3 cursor-pointer flex-1" @click="openTaskDetail(task.id)">
+                                        <!-- Priority / Type Indicator -->
+                                        <span class="w-2.5 h-2.5 rounded-full mt-1.5 shrink-0" :class="task.task_type === 'bug' ? 'bg-red-500' : getPriorityColor(task.priority)"></span>
+                                        <div>
+                                            <div class="flex items-center space-x-2">
+                                                <span x-show="task.task_type === 'bug'" class="px-1.5 py-0.2 bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300 text-[10px] font-bold rounded">БАГ</span>
+                                                <h4 class="text-sm font-semibold text-slate-800 dark:text-slate-100 hover:text-brand-600 dark:hover:text-blue-400 transition" :class="{ 'line-through text-slate-400 dark:text-slate-500 font-normal': task.status === 'done' }" x-text="task.title"></h4>
+                                                <span x-show="task.attachments && task.attachments.length" class="text-slate-400" title="Есть прикрепленные файлы">
+                                                    <i data-lucide="paperclip" class="w-3.5 h-3.5"></i>
+                                                </span>
+                                            </div>
+                                            <div class="flex flex-wrap items-center gap-2 mt-1 text-xs text-slate-500 dark:text-slate-400">
+                                                <span class="px-2 py-0.5 rounded-full font-medium" :class="getStatusBadgeClass(task.status)" x-text="getStatusLabel(task.status)"></span>
+                                                <span x-show="task.due_date" class="flex items-center space-x-1">
+                                                    <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
+                                                    <span x-text="task.due_date"></span>
+                                                </span>
+                                                <span x-show="task.comments_count" class="flex items-center space-x-1">
+                                                    <i data-lucide="message-square" class="w-3.5 h-3.5"></i>
+                                                    <span x-text="task.comments_count"></span>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Quick Change Status & Complete Button -->
+                                    <div class="flex items-center space-x-2 shrink-0">
+                                        <button x-show="task.status !== 'done'" @click="changeTaskStatus(task.id, 'done')" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-xs transition flex items-center space-x-1" title="Отметить как выполненную">
+                                            <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                                            <span>Завершить</span>
+                                        </button>
+                                        <select :value="task.status" @change="changeTaskStatus(task.id, $event.target.value)" class="text-xs bg-slate-100 dark:bg-slate-700 border-none rounded-lg px-2.5 py-1 text-slate-700 dark:text-slate-200 outline-none focus:ring-1 focus:ring-brand-500">
+                                            <option value="todo">К выполнению</option>
+                                            <option value="in_progress">В работе</option>
+                                            <option value="in_review">На проверке</option>
+                                            <option value="done">Завершена</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <template x-if="myActiveTasks.length === 0">
+                                <div class="py-8 text-center text-slate-400 dark:text-slate-500 text-sm">
+                                    <i data-lucide="check-circle-2" class="w-10 h-10 mx-auto mb-2 opacity-50"></i>
+                                    <p>У вас нет активных задач! Создайте новую или назначьте задачи из общей доски.</p>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ---------------- TAB 2: KANBAN BOARD ---------------- -->
+                <div x-show="activeTab === 'kanban'">
+                    <!-- Filter Toolbar -->
+                    <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+                        <div class="flex flex-wrap items-center gap-3">
+                            <!-- Filter My Tasks Only -->
+                            <button @click="filterMyOnly = !filterMyOnly; fetchTasks()" 
+                                :class="filterMyOnly ? 'bg-brand-600 text-white' : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700'"
+                                class="px-3 py-1.5 rounded-lg text-sm font-medium transition shadow-sm flex items-center space-x-1.5">
+                                <i data-lucide="user" class="w-4 h-4"></i>
+                                <span>Только мои</span>
+                            </button>
+
+                            <!-- Filter Priority -->
+                            <select x-model="filterPriority" @change="fetchTasks()" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-sm rounded-lg px-3 py-1.5 outline-none shadow-sm focus:ring-2 focus:ring-brand-500">
+                                <option value="">Все приоритеты</option>
+                                <option value="urgent">Срочно</option>
+                                <option value="high">Высокий</option>
+                                <option value="medium">Средний</option>
+                                <option value="low">Низкий</option>
+                            </select>
+
+                            <!-- Filter Assignee -->
+                            <select x-model="filterAssignee" @change="fetchTasks()" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-sm rounded-lg px-3 py-1.5 outline-none shadow-sm focus:ring-2 focus:ring-brand-500">
+                                <option value="">Все исполнители</option>
+                                <template x-for="user in usersList" :key="user.id">
+                                    <option :value="user.id" x-text="user.full_name"></option>
+                                </template>
+                            </select>
+                        </div>
+
+                        <div class="text-xs text-slate-500 dark:text-slate-400">
+                            Всего карточек: <span class="font-bold text-slate-800 dark:text-slate-200" x-text="tasks.length"></span>
+                        </div>
+                    </div>
+
+                    <!-- Kanban Columns Grid -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-start">
+                        <template x-for="col in kanbanColumns" :key="col.status">
+                            <div 
+                                @dragover.prevent="handleDragOver($event, col.status)" 
+                                @dragleave="handleDragLeave($event, col.status)" 
+                                @drop.prevent="handleDrop($event, col.status)"
+                                :class="{ 'border-brand-500 bg-blue-50/50 dark:bg-slate-700/80 ring-2 ring-brand-400/50': dragOverStatus === col.status }"
+                                class="bg-slate-100/80 dark:bg-slate-800/60 rounded-2xl p-4 border border-slate-200/60 dark:border-slate-700/50 flex flex-col min-h-[500px] transition-all duration-150">
+                                <!-- Column Header -->
+                                <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-200 dark:border-slate-700">
+                                    <div class="flex items-center space-x-2">
+                                        <span class="w-3 h-3 rounded-full" :class="col.color"></span>
+                                        <h3 class="font-bold text-sm text-slate-800 dark:text-slate-200" x-text="col.title"></h3>
+                                    </div>
+                                    <span class="bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-full text-xs font-semibold" x-text="getTasksByStatus(col.status).length"></span>
+                                </div>
+
+                                <!-- Task Cards list -->
+                                <div class="space-y-3 flex-1 custom-scrollbar overflow-y-auto max-h-[70vh] pr-1">
+                                    <template x-for="task in getTasksByStatus(col.status)" :key="task.id">
+                                        <div 
+                                            draggable="true" 
+                                            @dragstart="handleDragStart($event, task)" 
+                                            @dragend="handleDragEnd($event)"
+                                            @click="openTaskDetail(task.id)" 
+                                            :class="{ 'opacity-40 scale-95 border-brand-400': draggedTaskId === task.id, 'opacity-65 grayscale-[25%] bg-slate-50/70 dark:bg-slate-800/50 border-emerald-200/60 dark:border-emerald-900/30': task.status === 'done' }"
+                                            class="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm hover:shadow-md border border-slate-200/80 dark:border-slate-700 cursor-grab active:cursor-grabbing transition-all hover:-translate-y-0.5 group">
+                                            <!-- Priority / Bug Tag -->
+                                            <div class="flex items-center justify-between mb-2">
+                                                <div class="flex items-center space-x-1">
+                                                    <span x-show="task.task_type === 'bug'" class="px-2 py-0.5 rounded text-[10px] font-bold bg-red-600 text-white uppercase tracking-wider">БАГ</span>
+                                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider" :class="getPriorityBadgeClass(task.priority)" x-text="getPriorityLabel(task.priority)"></span>
+                                                </div>
+                                                
+                                                <div class="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <button x-show="col.status !== 'todo'" @click.stop="moveTaskPrev(task)" class="p-1 text-slate-400 hover:text-brand-600 rounded hover:bg-slate-100 dark:hover:bg-slate-700">
+                                                        <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
+                                                    </button>
+                                                    <button x-show="col.status !== 'done'" @click.stop="moveTaskNext(task)" class="p-1 text-slate-400 hover:text-brand-600 rounded hover:bg-slate-100 dark:hover:bg-slate-700">
+                                                        <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            <!-- Task Title -->
+                                            <h4 class="font-semibold text-sm text-slate-900 dark:text-white mb-2 line-clamp-2" :class="{ 'line-through text-slate-400 dark:text-slate-500 font-normal': task.status === 'done' }" x-text="task.title"></h4>
+
+
+                                            <!-- Footer Info: Due date + Watchers & Assignee Avatars -->
+                                            <div class="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-700/80 text-xs text-slate-500">
+                                                <!-- Due Date -->
+                                                <div class="flex items-center space-x-1 text-slate-400" :class="{ 'text-red-500 font-medium': isOverdue(task.due_date, task.status) }">
+                                                    <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
+                                                    <span x-text="task.due_date || 'Без срока'"></span>
+                                                </div>
+
+                                                <div class="flex items-center space-x-2">
+                                                    <span x-show="task.watchers && task.watchers.length" class="flex items-center space-x-0.5 text-slate-400" title="Наблюдатели">
+                                                        <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                                                        <span x-text="task.watchers.length"></span>
+                                                    </span>
+                                                    <span x-show="task.attachments && task.attachments.length" class="flex items-center space-x-0.5 text-slate-400" title="Вложения">
+                                                        <i data-lucide="paperclip" class="w-3.5 h-3.5"></i>
+                                                        <span x-text="task.attachments.length"></span>
+                                                    </span>
+                                                    <span x-show="task.comments_count" class="flex items-center space-x-0.5 text-slate-400">
+                                                        <i data-lucide="message-square" class="w-3.5 h-3.5"></i>
+                                                        <span x-text="task.comments_count"></span>
+                                                    </span>
+                                                    <!-- Assignee Avatar -->
+                                                    <template x-if="task.assignee">
+                                                        <div class="w-6 h-6 rounded-full text-white font-bold text-[10px] flex items-center justify-center shadow-xs" :style="{ backgroundColor: task.assignee.avatar_color }" :title="'Исполнитель: ' + task.assignee.full_name">
+                                                            <span x-text="getInitials(task.assignee.full_name)"></span>
+                                                        </div>
+                                                    </template>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+
+                                <!-- Add Task Button in Column -->
+                                <button @click="openCreateModal(col.status)" class="mt-3 w-full py-2 border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-brand-500 text-slate-500 hover:text-brand-600 dark:text-slate-400 dark:hover:text-blue-400 rounded-xl text-xs font-semibold flex items-center justify-center space-x-1.5 transition">
+                                    <i data-lucide="plus" class="w-4 h-4"></i>
+                                    <span>Добавить в «<span x-text="col.title"></span>»</span>
+                                </button>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- ---------------- TAB 3: LIST VIEW ---------------- -->
+                <div x-show="activeTab === 'list'">
+                    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200/80 dark:border-slate-700 p-6">
+                        <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+                            <h2 class="text-lg font-bold">Таблица всех задач</h2>
+                            <button @click="openCreateModal()" class="px-3.5 py-1.5 bg-brand-600 text-white rounded-lg text-sm font-medium flex items-center space-x-1">
+                                <i data-lucide="plus" class="w-4 h-4"></i>
+                                <span>Новая задача</span>
+                            </button>
+                        </div>
+
+                        <!-- Table -->
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-sm">
+                                <thead>
+                                    <tr class="border-b border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                                        <th class="pb-3 px-2">Тип</th>
+                                        <th class="pb-3 px-2">ID</th>
+                                        <th class="pb-3 px-2">Название</th>
+                                        <th class="pb-3 px-2">Статус</th>
+                                        <th class="pb-3 px-2">Постановщик</th>
+                                        <th class="pb-3 px-2">Исполнитель</th>
+                                        <th class="pb-3 px-2">Наблюдатели</th>
+                                        <th class="pb-3 px-2">Срок</th>
+                                        <th class="pb-3 px-2 text-right">Действие</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+                                    <template x-for="task in tasks" :key="task.id">
+                                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition" :class="{ 'opacity-60 bg-slate-50/60 dark:bg-slate-800/40': task.status === 'done' }">
+                                            <td class="py-3 px-2">
+                                                <span x-show="task.task_type === 'bug'" class="px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300 border border-red-200">БАГ</span>
+                                                <span x-show="task.task_type !== 'bug'" class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300 border border-blue-200">ЗАДАЧА</span>
+                                            </td>
+                                            <td class="py-3 px-2 font-mono text-xs text-slate-400" x-text="'#' + task.id"></td>
+                                            <td class="py-3 px-2 font-medium text-slate-900 dark:text-white cursor-pointer hover:text-brand-600 dark:hover:text-blue-400" :class="{ 'line-through text-slate-400 dark:text-slate-500 font-normal': task.status === 'done' }" @click="openTaskDetail(task.id)" x-text="task.title"></td>
+                                            <td class="py-3 px-2">
+                                                <span class="px-2 py-0.5 rounded-full text-xs font-medium" :class="getStatusBadgeClass(task.status)" x-text="getStatusLabel(task.status)"></span>
+                                            </td>
+                                            
+                                            <!-- Creator (Постановщик) -->
+                                            <td class="py-3 px-2">
+                                                <template x-if="task.creator">
+                                                    <div class="flex items-center space-x-1.5">
+                                                        <div class="w-5 h-5 rounded-full text-white font-bold text-[9px] flex items-center justify-center shrink-0" :style="{ backgroundColor: task.creator.avatar_color }">
+                                                            <span x-text="getInitials(task.creator.full_name)"></span>
+                                                        </div>
+                                                        <span class="text-xs truncate max-w-[100px]" x-text="task.creator.full_name"></span>
+                                                    </div>
+                                                </template>
+                                            </td>
+
+                                            <!-- Assignee (Исполнитель) -->
+                                            <td class="py-3 px-2">
+                                                <template x-if="task.assignee">
+                                                    <div class="flex items-center space-x-1.5">
+                                                        <div class="w-5 h-5 rounded-full text-white font-bold text-[9px] flex items-center justify-center shrink-0" :style="{ backgroundColor: task.assignee.avatar_color }">
+                                                            <span x-text="getInitials(task.assignee.full_name)"></span>
+                                                        </div>
+                                                        <span class="text-xs truncate max-w-[100px]" x-text="task.assignee.full_name"></span>
+                                                    </div>
+                                                </template>
+                                                <span x-show="!task.assignee" class="text-slate-400 text-xs">—</span>
+                                            </td>
+
+                                            <!-- Watchers (Наблюдатели) -->
+                                            <td class="py-3 px-2 text-xs">
+                                                <span x-show="task.watchers && task.watchers.length" class="inline-flex items-center space-x-1 text-slate-600 dark:text-slate-300 bg-indigo-50 dark:bg-indigo-950 px-2 py-0.5 rounded font-mono font-bold">
+                                                    <i data-lucide="eye" class="w-3.5 h-3.5 text-indigo-500"></i>
+                                                    <span x-text="task.watchers.length"></span>
+                                                </span>
+                                                <span x-show="!task.watchers || !task.watchers.length" class="text-slate-400">—</span>
+                                            </td>
+
+                                            <td class="py-3 px-2 text-xs text-slate-500" x-text="task.due_date || '—'"></td>
+                                            <td class="py-3 px-2 text-right">
+                                                <button @click="openTaskDetail(task.id)" class="p-1.5 text-slate-400 hover:text-brand-600 rounded">
+                                                    <i data-lucide="edit-3" class="w-4 h-4"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ---------------- TAB 4: BUG TRACKER ---------------- -->
+                <div x-show="activeTab === 'bugs'">
+                    <!-- Header Toolbar -->
+                    <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+                        <div>
+                            <h2 class="text-xl font-bold flex items-center space-x-2">
+                                <i data-lucide="bug" class="w-6 h-6 text-red-600"></i>
+                                <span>Баг Трекер (Bug Tracker)</span>
+                            </h2>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Реестр ошибок и дефектов с шагами воспроизведения</p>
+                        </div>
+
+                        <button @click="openCreateBugModal()" class="px-3.5 py-1.5 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 text-xs font-semibold rounded-xl transition flex items-center space-x-1.5">
+                            <i data-lucide="plus-circle" class="w-4 h-4 text-red-500"></i>
+                            <span>Зафиксировать баг</span>
+                        </button>
+                    </div>
+
+                    <!-- Filter & View Switcher Bar for Bugs -->
+                    <div class="flex flex-wrap items-center justify-between gap-4 mb-6 bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700">
+                        <div class="flex flex-wrap items-center gap-3">
+                            <select x-model="filterBugSeverity" class="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs rounded-xl px-3 py-2 outline-none">
+                                <option value="">Вся критичность</option>
+                                <option value="critical">Critical (Блокер)</option>
+                                <option value="major">Major (Высокий приоритет)</option>
+                                <option value="minor">Minor (Средний приоритет)</option>
+                                <option value="trivial">Trivial (Минорная)</option>
+                            </select>
+
+                            <select x-model="filterBugStatus" class="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs rounded-xl px-3 py-2 outline-none">
+                                <option value="">Все статусы</option>
+                                <option value="todo">К выполнению</option>
+                                <option value="in_progress">В исправлении</option>
+                                <option value="in_review">На тестировании</option>
+                                <option value="done">Завершена</option>
+                            </select>
+
+                            <select x-model="filterAssignee" class="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs rounded-xl px-3 py-2 outline-none">
+                                <option value="">Все ответственные</option>
+                                <template x-for="user in usersList" :key="user.id">
+                                    <option :value="user.id" x-text="user.full_name"></option>
+                                </template>
+                            </select>
+                        </div>
+
+                        <!-- Mode Toggle: List vs Cards -->
+                        <div class="flex items-center space-x-4">
+                            <div class="flex border border-slate-200 dark:border-slate-700 rounded-xl p-0.5 bg-slate-100 dark:bg-slate-700/60 text-xs">
+                                <button @click="bugViewMode = 'list'" :class="bugViewMode === 'list' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs font-bold' : 'text-slate-500 dark:text-slate-400'" class="px-3 py-1.5 rounded-lg transition flex items-center space-x-1.5">
+                                    <i data-lucide="list" class="w-4 h-4"></i>
+                                    <span>Список</span>
+                                </button>
+                                <button @click="bugViewMode = 'cards'" :class="bugViewMode === 'cards' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs font-bold' : 'text-slate-500 dark:text-slate-400'" class="px-3 py-1.5 rounded-lg transition flex items-center space-x-1.5">
+                                    <i data-lucide="layout-grid" class="w-4 h-4"></i>
+                                    <span>Карточки</span>
+                                </button>
+                            </div>
+
+                            <span class="text-xs text-slate-500 hidden sm:inline">Багов: <strong class="text-slate-800 dark:text-slate-200" x-text="filteredBugs.length"></strong></span>
+                        </div>
+                    </div>
+
+                    <!-- VIEW 1: BUGS LIST TABLE VIEW -->
+                    <div x-show="bugViewMode === 'list'" class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200/80 dark:border-slate-700 p-6 overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-sm">
+                                <thead>
+                                    <tr class="border-b border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                                        <th class="pb-3 px-3">Критичность</th>
+                                        <th class="pb-3 px-2">ID</th>
+                                        <th class="pb-3 px-3">Заголовок бага</th>
+                                        <th class="pb-3 px-3">Постановщик</th>
+                                        <th class="pb-3 px-3">Исполнитель</th>
+                                        <th class="pb-3 px-3">Статус</th>
+                                        <th class="pb-3 px-3">Файлы</th>
+                                        <th class="pb-3 px-3">Срок</th>
+                                        <th class="pb-3 px-2 text-right">Действия</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+                                    <template x-for="bug in filteredBugs" :key="bug.id">
+                                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition" :class="{ 'opacity-60 bg-slate-50/60 dark:bg-slate-800/40': bug.status === 'done' }">
+                                            <!-- Severity -->
+                                            <td class="py-3.5 px-3 whitespace-nowrap">
+                                                <span class="px-2.5 py-1 rounded text-xs font-bold uppercase tracking-wider" :class="getSeverityBadgeClass(bug.severity)" x-text="getSeverityLabel(bug.severity)"></span>
+                                            </td>
+
+                                            <!-- ID -->
+                                            <td class="py-3.5 px-2 font-mono text-xs text-slate-400" x-text="'#' + bug.id"></td>
+
+                                            <!-- Title -->
+                                            <td class="py-3.5 px-3">
+                                                <div class="font-semibold text-slate-900 dark:text-white cursor-pointer hover:text-red-600 transition" :class="{ 'line-through text-slate-400 dark:text-slate-500 font-normal': bug.status === 'done' }" @click="openTaskDetail(bug.id)" x-text="bug.title"></div>
+                                            </td>
+
+                                            <!-- Creator (Постановщик) -->
+                                            <td class="py-3.5 px-3 whitespace-nowrap">
+                                                <template x-if="bug.creator">
+                                                    <div class="flex items-center space-x-1.5">
+                                                        <div class="w-5 h-5 rounded-full text-white font-bold text-[9px] flex items-center justify-center shrink-0" :style="{ backgroundColor: bug.creator.avatar_color }">
+                                                            <span x-text="getInitials(bug.creator.full_name)"></span>
+                                                        </div>
+                                                        <span class="text-xs truncate max-w-[100px]" x-text="bug.creator.full_name"></span>
+                                                    </div>
+                                                </template>
+                                            </td>
+
+                                            <!-- Assignee (Исполнитель) -->
+                                            <td class="py-3.5 px-3 whitespace-nowrap">
+                                                <template x-if="bug.assignee">
+                                                    <div class="flex items-center space-x-1.5">
+                                                        <div class="w-5 h-5 rounded-full text-white font-bold text-[9px] flex items-center justify-center shrink-0" :style="{ backgroundColor: bug.assignee.avatar_color }">
+                                                            <span x-text="getInitials(bug.assignee.full_name)"></span>
+                                                        </div>
+                                                        <span class="text-xs truncate max-w-[100px]" x-text="bug.assignee.full_name"></span>
+                                                    </div>
+                                                </template>
+                                                <span x-show="!bug.assignee" class="text-slate-400 text-xs">Не назначен</span>
+                                            </td>
+
+                                            <!-- Status -->
+                                            <td class="py-3.5 px-3 whitespace-nowrap">
+                                                <select :value="bug.status" @change="changeTaskStatus(bug.id, $event.target.value)" class="text-xs font-medium rounded-lg px-2.5 py-1 bg-slate-100 dark:bg-slate-700 border-none text-slate-800 dark:text-slate-200 outline-none">
+                                                    <option value="todo">К выполнению</option>
+                                                    <option value="in_progress">В исправлении</option>
+                                                    <option value="in_review">На тестировании</option>
+                                                    <option value="done">Завершена</option>
+                                                </select>
+                                            </td>
+
+                                            <!-- Attachments -->
+                                            <td class="py-3.5 px-3 text-xs whitespace-nowrap">
+                                                <span x-show="bug.attachments && bug.attachments.length" class="inline-flex items-center space-x-1 text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded font-mono font-bold">
+                                                    <i data-lucide="paperclip" class="w-3.5 h-3.5"></i>
+                                                    <span x-text="bug.attachments.length"></span>
+                                                </span>
+                                                <span x-show="!bug.attachments || !bug.attachments.length" class="text-slate-400 text-xs">—</span>
+                                            </td>
+
+                                            <!-- Due Date -->
+                                            <td class="py-3.5 px-3 text-xs whitespace-nowrap text-slate-500" x-text="bug.due_date || '—'"></td>
+
+                                            <!-- Actions -->
+                                            <td class="py-3.5 px-2 text-right whitespace-nowrap">
+                                                <button @click="openTaskDetail(bug.id)" class="p-1.5 text-slate-400 hover:text-brand-600 rounded">
+                                                    <i data-lucide="edit-3" class="w-4 h-4"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    </template>
+
+                                    <template x-if="filteredBugs.length === 0">
+                                        <tr>
+                                            <td colspan="9" class="py-10 text-center text-slate-400 dark:text-slate-500">
+                                                <i data-lucide="shield-check" class="w-10 h-10 mx-auto mb-2 opacity-40 text-emerald-500"></i>
+                                                <p>Баги не найдены.</p>
+                                            </td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- VIEW 2: BUGS CARDS GRID VIEW -->
+                    <div x-show="bugViewMode === 'cards'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                        <template x-for="bug in filteredBugs" :key="bug.id">
+                            <div @click="openTaskDetail(bug.id)" class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm hover:shadow-md border border-slate-200/80 dark:border-slate-700 cursor-pointer transition flex flex-col justify-between" :class="{ 'opacity-65 grayscale-[25%] bg-slate-50/70 dark:bg-slate-800/50': bug.status === 'done' }">
+                                <div>
+                                    <!-- Severity & Status badges -->
+                                    <div class="flex items-center justify-between mb-3">
+                                        <span class="px-2.5 py-0.5 rounded text-xs font-semibold" :class="getSeverityBadgeClass(bug.severity)" x-text="getSeverityLabel(bug.severity)"></span>
+                                        <span class="px-2.5 py-0.5 rounded-full text-xs font-medium" :class="getStatusBadgeClass(bug.status)" x-text="getStatusLabel(bug.status)"></span>
+                                    </div>
+
+                                    <!-- Bug Title -->
+                                    <h3 class="font-bold text-base text-slate-900 dark:text-white mb-2 line-clamp-2 hover:text-red-600 transition" :class="{ 'line-through text-slate-400 dark:text-slate-500 font-normal': bug.status === 'done' }" x-text="bug.title"></h3>
+
+                                    <!-- Description -->
+                                    <p class="text-xs text-slate-500 dark:text-slate-400 mb-3 line-clamp-2" x-text="bug.description || 'Без описания'"></p>
+
+                                    <!-- Steps preview -->
+                                    <div x-show="bug.steps_to_reproduce" class="bg-slate-50 dark:bg-slate-700/40 p-2.5 rounded-xl text-[11px] text-slate-600 dark:text-slate-300 mb-3 font-mono line-clamp-3">
+                                        <span class="font-bold uppercase text-[9px] text-slate-400 block mb-0.5">Шаги воспроизведения:</span>
+                                        <span x-text="bug.steps_to_reproduce"></span>
+                                    </div>
+                                </div>
+
+                                <!-- Footer -->
+                                <div class="pt-3 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between text-xs text-slate-500">
+                                    <div class="flex items-center space-x-2">
+                                        <template x-if="bug.assignee">
+                                            <div class="flex items-center space-x-1.5">
+                                                <div class="w-5 h-5 rounded-full text-white font-bold text-[9px] flex items-center justify-center shrink-0" :style="{ backgroundColor: bug.assignee.avatar_color }">
+                                                    <span x-text="getInitials(bug.assignee.full_name)"></span>
+                                                </div>
+                                                <span class="truncate max-w-[100px]" x-text="bug.assignee.full_name"></span>
+                                            </div>
+                                        </template>
+                                        <span x-show="!bug.assignee" class="text-slate-400">Не назначен</span>
+                                    </div>
+
+                                    <div class="flex items-center space-x-3 text-slate-400">
+                                        <span x-show="bug.attachments && bug.attachments.length" class="flex items-center space-x-1" title="Вложения">
+                                            <i data-lucide="paperclip" class="w-3.5 h-3.5"></i>
+                                            <span x-text="bug.attachments.length"></span>
+                                        </span>
+                                        <span x-show="bug.comments_count" class="flex items-center space-x-1">
+                                            <i data-lucide="message-square" class="w-3.5 h-3.5"></i>
+                                            <span x-text="bug.comments_count"></span>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+
+                        <template x-if="filteredBugs.length === 0">
+                            <div class="col-span-full py-12 text-center text-slate-400 dark:text-slate-500">
+                                <i data-lucide="shield-check" class="w-12 h-12 mx-auto mb-3 opacity-40 text-emerald-500"></i>
+                                <p class="text-base font-medium">Баги не найдены!</p>
+                                <p class="text-xs mt-1">Все системы работают в штатном режиме.</p>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- ---------------- TAB 5: ANALYTICS & STATISTICS ---------------- -->
+                <div x-show="activeTab === 'analytics'">
+                    <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+                        <div>
+                            <h2 class="text-xl font-bold flex items-center space-x-2">
+                                <i data-lucide="bar-chart-3" class="w-6 h-6 text-indigo-600"></i>
+                                <span>Сквозная аналитика и статистика</span>
+                            </h2>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Метрики продуктивности команды, выполнения задач и регресса багов</p>
+                        </div>
+
+                        <button @click="fetchFullStats()" class="px-3.5 py-1.5 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-100 rounded-xl text-xs font-semibold transition flex items-center space-x-1.5">
+                            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                            <span>Обновить данные</span>
+                        </button>
+                    </div>
+
+                    <!-- Top Summary KPI Grid -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+                        <!-- KPI 1: Tasks Completion -->
+                        <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-200/80 dark:border-slate-700">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Задачи</span>
+                                <div class="p-2 bg-blue-50 dark:bg-blue-950 text-brand-600 rounded-xl">
+                                    <i data-lucide="check-square" class="w-5 h-5"></i>
+                                </div>
+                            </div>
+                            <div class="flex items-baseline space-x-2">
+                                <span class="text-3xl font-bold text-slate-900 dark:text-white" x-text="fullStats.completed_tasks"></span>
+                                <span class="text-sm text-slate-400" x-text="'/ ' + fullStats.total_tasks + ' задач'"></span>
+                            </div>
+                            <!-- Progress Bar -->
+                            <div class="mt-3">
+                                <div class="flex justify-between text-xs text-slate-500 mb-1">
+                                    <span>Выполнено</span>
+                                    <span class="font-bold text-brand-600" x-text="fullStats.tasks_completion_rate + '%'"></span>
+                                </div>
+                                <div class="w-full bg-slate-100 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
+                                    <div class="bg-brand-600 h-full rounded-full transition-all duration-500" :style="{ width: fullStats.tasks_completion_rate + '%' }"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- KPI 2: Bugs Resolution -->
+                        <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-200/80 dark:border-slate-700">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Баг-трекинг</span>
+                                <div class="p-2 bg-red-50 dark:bg-red-950 text-red-600 rounded-xl">
+                                    <i data-lucide="bug" class="w-5 h-5"></i>
+                                </div>
+                            </div>
+                            <div class="flex items-baseline space-x-2">
+                                <span class="text-3xl font-bold text-slate-900 dark:text-white" x-text="fullStats.fixed_bugs"></span>
+                                <span class="text-sm text-slate-400" x-text="'/ ' + fullStats.total_bugs + ' багов'"></span>
+                            </div>
+                            <!-- Progress Bar -->
+                            <div class="mt-3">
+                                <div class="flex justify-between text-xs text-slate-500 mb-1">
+                                    <span>Исправлено</span>
+                                    <span class="font-bold text-red-600" x-text="fullStats.bugs_resolution_rate + '%'"></span>
+                                </div>
+                                <div class="w-full bg-slate-100 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
+                                    <div class="bg-red-500 h-full rounded-full transition-all duration-500" :style="{ width: fullStats.bugs_resolution_rate + '%' }"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- KPI 3: Critical Blockers -->
+                        <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-200/80 dark:border-slate-700">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Критические блокеры</span>
+                                <div class="p-2 bg-amber-50 dark:bg-amber-950 text-amber-600 rounded-xl">
+                                    <i data-lucide="alert-octagon" class="w-5 h-5"></i>
+                                </div>
+                            </div>
+                            <div class="flex items-baseline space-x-2">
+                                <span class="text-3xl font-bold text-red-600 dark:text-red-400" x-text="fullStats.critical_bugs"></span>
+                                <span class="text-xs text-slate-400">открытых блокеров</span>
+                            </div>
+                            <p class="text-xs text-slate-500 mt-3">Требуют первоочередного внимания команды</p>
+                        </div>
+
+                        <!-- KPI 4: Active Team Members -->
+                        <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-200/80 dark:border-slate-700">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Команда проекта</span>
+                                <div class="p-2 bg-purple-50 dark:bg-purple-950 text-purple-600 rounded-xl">
+                                    <i data-lucide="users" class="w-5 h-5"></i>
+                                </div>
+                            </div>
+                            <div class="flex items-baseline space-x-2">
+                                <span class="text-3xl font-bold text-slate-900 dark:text-white" x-text="fullStats.user_performance ? fullStats.user_performance.length : 0"></span>
+                                <span class="text-xs text-slate-400">участников</span>
+                            </div>
+                            <p class="text-xs text-slate-500 mt-3">Активно участвуют в решении задач</p>
+                        </div>
+                    </div>
+
+                    <!-- Detailed Breakdown Section Grid -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                        <!-- Chart Card 1: Status Distribution -->
+                        <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-slate-200/80 dark:border-slate-700">
+                            <h3 class="font-bold text-base mb-4 flex items-center space-x-2">
+                                <i data-lucide="pie-chart" class="w-5 h-5 text-brand-600"></i>
+                                <span>Распределение всех тикетов по статусам</span>
+                            </h3>
+
+                            <div class="space-y-4">
+                                <!-- Todo -->
+                                <div>
+                                    <div class="flex justify-between text-xs mb-1">
+                                        <span class="font-semibold text-slate-700 dark:text-slate-300">К выполнению (To Do)</span>
+                                        <span class="font-bold" x-text="(fullStats.status_breakdown.todo || 0) + ' тикетов'"></span>
+                                    </div>
+                                    <div class="w-full bg-slate-100 dark:bg-slate-700 h-2.5 rounded-full overflow-hidden">
+                                        <div class="bg-slate-400 h-full rounded-full" :style="{ width: ((fullStats.status_breakdown.todo || 0) / (fullStats.total_tasks + fullStats.total_bugs || 1) * 100) + '%' }"></div>
+                                    </div>
+                                </div>
+
+                                <!-- In Progress -->
+                                <div>
+                                    <div class="flex justify-between text-xs mb-1">
+                                        <span class="font-semibold text-amber-600 dark:text-amber-400">В работе (In Progress)</span>
+                                        <span class="font-bold" x-text="(fullStats.status_breakdown.in_progress || 0) + ' тикетов'"></span>
+                                    </div>
+                                    <div class="w-full bg-slate-100 dark:bg-slate-700 h-2.5 rounded-full overflow-hidden">
+                                        <div class="bg-amber-500 h-full rounded-full" :style="{ width: ((fullStats.status_breakdown.in_progress || 0) / (fullStats.total_tasks + fullStats.total_bugs || 1) * 100) + '%' }"></div>
+                                    </div>
+                                </div>
+
+                                <!-- In Review -->
+                                <div>
+                                    <div class="flex justify-between text-xs mb-1">
+                                        <span class="font-semibold text-purple-600 dark:text-purple-400">На проверке (In Review)</span>
+                                        <span class="font-bold" x-text="(fullStats.status_breakdown.in_review || 0) + ' тикетов'"></span>
+                                    </div>
+                                    <div class="w-full bg-slate-100 dark:bg-slate-700 h-2.5 rounded-full overflow-hidden">
+                                        <div class="bg-purple-500 h-full rounded-full" :style="{ width: ((fullStats.status_breakdown.in_review || 0) / (fullStats.total_tasks + fullStats.total_bugs || 1) * 100) + '%' }"></div>
+                                    </div>
+                                </div>
+
+                                <!-- Done -->
+                                <div>
+                                    <div class="flex justify-between text-xs mb-1">
+                                        <span class="font-semibold text-emerald-600 dark:text-emerald-400">Готово / Исправлено (Done)</span>
+                                        <span class="font-bold text-emerald-600" x-text="(fullStats.status_breakdown.done || 0) + ' тикетов'"></span>
+                                    </div>
+                                    <div class="w-full bg-slate-100 dark:bg-slate-700 h-2.5 rounded-full overflow-hidden">
+                                        <div class="bg-emerald-500 h-full rounded-full" :style="{ width: ((fullStats.status_breakdown.done || 0) / (fullStats.total_tasks + fullStats.total_bugs || 1) * 100) + '%' }"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Chart Card 2: Bug Severity Breakdown -->
+                        <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-slate-200/80 dark:border-slate-700">
+                            <h3 class="font-bold text-base mb-4 flex items-center space-x-2">
+                                <i data-lucide="shield-alert" class="w-5 h-5 text-red-600"></i>
+                                <span>Структура багов по критичности</span>
+                            </h3>
+
+                            <div class="space-y-4">
+                                <!-- Critical -->
+                                <div>
+                                    <div class="flex justify-between text-xs mb-1">
+                                        <span class="font-semibold text-red-600">Critical (Блокер)</span>
+                                        <span class="font-bold text-red-600" x-text="(fullStats.bug_severity_breakdown.critical || 0) + ' багов'"></span>
+                                    </div>
+                                    <div class="w-full bg-slate-100 dark:bg-slate-700 h-2.5 rounded-full overflow-hidden">
+                                        <div class="bg-red-600 h-full rounded-full" :style="{ width: ((fullStats.bug_severity_breakdown.critical || 0) / (fullStats.total_bugs || 1) * 100) + '%' }"></div>
+                                    </div>
+                                </div>
+
+                                <!-- Major -->
+                                <div>
+                                    <div class="flex justify-between text-xs mb-1">
+                                        <span class="font-semibold text-orange-600">Major (Высокий приоритет)</span>
+                                        <span class="font-bold" x-text="(fullStats.bug_severity_breakdown.major || 0) + ' багов'"></span>
+                                    </div>
+                                    <div class="w-full bg-slate-100 dark:bg-slate-700 h-2.5 rounded-full overflow-hidden">
+                                        <div class="bg-orange-500 h-full rounded-full" :style="{ width: ((fullStats.bug_severity_breakdown.major || 0) / (fullStats.total_bugs || 1) * 100) + '%' }"></div>
+                                    </div>
+                                </div>
+
+                                <!-- Minor -->
+                                <div>
+                                    <div class="flex justify-between text-xs mb-1">
+                                        <span class="font-semibold text-amber-600">Minor (Средний приоритет)</span>
+                                        <span class="font-bold" x-text="(fullStats.bug_severity_breakdown.minor || 0) + ' багов'"></span>
+                                    </div>
+                                    <div class="w-full bg-slate-100 dark:bg-slate-700 h-2.5 rounded-full overflow-hidden">
+                                        <div class="bg-amber-500 h-full rounded-full" :style="{ width: ((fullStats.bug_severity_breakdown.minor || 0) / (fullStats.total_bugs || 1) * 100) + '%' }"></div>
+                                    </div>
+                                </div>
+
+                                <!-- Trivial -->
+                                <div>
+                                    <div class="flex justify-between text-xs mb-1">
+                                        <span class="font-semibold text-slate-600 dark:text-slate-400">Trivial (Минорный)</span>
+                                        <span class="font-bold" x-text="(fullStats.bug_severity_breakdown.trivial || 0) + ' багов'"></span>
+                                    </div>
+                                    <div class="w-full bg-slate-100 dark:bg-slate-700 h-2.5 rounded-full overflow-hidden">
+                                        <div class="bg-slate-400 h-full rounded-full" :style="{ width: ((fullStats.bug_severity_breakdown.trivial || 0) / (fullStats.total_bugs || 1) * 100) + '%' }"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Team Performance Table -->
+                    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200/80 dark:border-slate-700 p-6">
+                        <h3 class="font-bold text-lg mb-4 flex items-center space-x-2">
+                            <i data-lucide="award" class="w-5 h-5 text-indigo-600"></i>
+                            <span>Эффективность и загрузка участников команды</span>
+                        </h3>
+
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-sm">
+                                <thead>
+                                    <tr class="border-b border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                                        <th class="pb-3 px-3">Участник</th>
+                                        <th class="pb-3 px-3">Задачи (Назначено / Готово)</th>
+                                        <th class="pb-3 px-3">Баги (Назначено / Исправлено)</th>
+                                        <th class="pb-3 px-3 text-right">Общий прогресс</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+                                    <template x-for="user in fullStats.user_performance" :key="user.id">
+                                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition">
+                                            <!-- User info -->
+                                            <td class="py-4 px-3">
+                                                <div class="flex items-center space-x-3">
+                                                    <div class="w-8 h-8 rounded-full text-white font-bold text-xs flex items-center justify-center shrink-0" :style="{ backgroundColor: user.avatar_color }">
+                                                        <span x-text="getInitials(user.full_name)"></span>
+                                                    </div>
+                                                    <div>
+                                                        <div class="font-semibold text-slate-900 dark:text-white text-sm" x-text="user.full_name"></div>
+                                                        <div class="text-xs text-slate-400" x-text="user.role"></div>
+                                                    </div>
+                                                </div>
+                                            </td>
+
+                                            <!-- Tasks Stats -->
+                                            <td class="py-4 px-3">
+                                                <div class="text-xs font-semibold text-slate-800 dark:text-slate-200 mb-1">
+                                                    <span x-text="user.completed_tasks"></span> <span class="text-slate-400" x-text="'из ' + user.assigned_tasks"></span>
+                                                </div>
+                                                <div class="w-32 bg-slate-100 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden">
+                                                    <div class="bg-brand-600 h-full rounded-full" :style="{ width: (user.assigned_tasks > 0 ? (user.completed_tasks / user.assigned_tasks * 100) : 0) + '%' }"></div>
+                                                </div>
+                                            </td>
+
+                                            <!-- Bugs Stats -->
+                                            <td class="py-4 px-3">
+                                                <div class="text-xs font-semibold text-slate-800 dark:text-slate-200 mb-1">
+                                                    <span x-text="user.fixed_bugs"></span> <span class="text-slate-400" x-text="'из ' + user.assigned_bugs"></span>
+                                                </div>
+                                                <div class="w-32 bg-slate-100 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden">
+                                                    <div class="bg-red-500 h-full rounded-full" :style="{ width: (user.assigned_bugs > 0 ? (user.fixed_bugs / user.assigned_bugs * 100) : 0) + '%' }"></div>
+                                                </div>
+                                            </td>
+
+                                            <!-- Total Efficiency -->
+                                            <td class="py-4 px-3 text-right">
+                                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
+                                                    <span x-text="((user.assigned_tasks + user.assigned_bugs) > 0 ? Math.round((user.completed_tasks + user.fixed_bugs) / (user.assigned_tasks + user.assigned_bugs) * 100) : 0) + '%'"></span>
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ---------------- TAB 6: CALENDAR VIEW ---------------- -->
+                <div x-show="activeTab === 'calendar'">
+                    <!-- Header Toolbar -->
+                    <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+                        <div>
+                            <h2 class="text-xl font-bold flex items-center space-x-2">
+                                <i data-lucide="calendar" class="w-6 h-6 text-amber-500"></i>
+                                <span>Календарь дедлайнов и задач</span>
+                            </h2>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Отслеживание крайних сроков задач и багов по дням месяца</p>
+                        </div>
+
+                        <div class="flex flex-wrap items-center gap-3">
+                            <!-- Filter Type: All, Tasks, Bugs -->
+                            <select x-model="filterCalendarType" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs rounded-xl px-3 py-2 outline-none shadow-xs">
+                                <option value="">Все типы тикетов</option>
+                                <option value="task">Только задачи</option>
+                                <option value="bug">Только баги</option>
+                            </select>
+
+                            <!-- Month Switcher Controls -->
+                            <div class="flex items-center space-x-1 bg-white dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs">
+                                <button @click="prevCalendarMonth()" class="p-1.5 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition" title="Предыдущий месяц">
+                                    <i data-lucide="chevron-left" class="w-4 h-4"></i>
+                                </button>
+                                <button @click="todayCalendarMonth()" class="px-3 py-1 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition">
+                                    Сегодня
+                                </button>
+                                <button @click="nextCalendarMonth()" class="p-1.5 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition" title="Следующий месяц">
+                                    <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                            
+                            <h3 class="text-base font-bold text-slate-900 dark:text-white min-w-[140px] text-right" x-text="calendarTitle"></h3>
+                        </div>
+                    </div>
+
+                    <!-- Calendar Month Grid Container -->
+                    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200/80 dark:border-slate-700 overflow-hidden">
+                        <!-- Weekday Headers -->
+                        <div class="grid grid-cols-7 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 text-center font-bold text-xs text-slate-500 uppercase tracking-wider">
+                            <div class="py-3">Пн</div>
+                            <div class="py-3">Вт</div>
+                            <div class="py-3">Ср</div>
+                            <div class="py-3">Чт</div>
+                            <div class="py-3">Пт</div>
+                            <div class="py-3 text-amber-600 dark:text-amber-400">Сб</div>
+                            <div class="py-3 text-red-600 dark:text-red-400">Вс</div>
+                        </div>
+
+                        <!-- 35 or 42 Days Cells Grid -->
+                        <div class="grid grid-cols-7 divide-x divide-y divide-slate-200 dark:divide-slate-700 bg-slate-100 dark:bg-slate-900/50">
+                            <template x-for="(day, index) in calendarDays" :key="index">
+                                <div class="min-h-[125px] p-2 flex flex-col justify-start transition hover:bg-slate-50/80 dark:hover:bg-slate-800/90" :class="day.isCurrentMonth ? 'bg-white dark:bg-slate-800' : 'bg-slate-50/60 dark:bg-slate-800/40 text-slate-400'">
+                                    <!-- Day Header -->
+                                    <div class="flex items-center justify-between mb-1.5">
+                                        <span :class="day.isToday ? 'bg-brand-600 text-white font-bold rounded-full w-6 h-6 flex items-center justify-center text-xs shadow-md ring-2 ring-brand-300' : 'text-xs font-semibold text-slate-600 dark:text-slate-300'" x-text="day.dayNumber"></span>
+                                        <span x-show="day.tasks && day.tasks.length" class="text-[10px] font-bold px-1.5 py-0.2 bg-slate-100 dark:bg-slate-700 rounded-full text-slate-500" x-text="day.tasks.length + ' тикет'"></span>
+                                    </div>
+
+                                    <!-- Tasks due on this day -->
+                                    <div class="space-y-1.5 overflow-y-auto max-h-[95px] custom-scrollbar pr-0.5">
+                                        <template x-for="task in day.tasks" :key="task.id">
+                                            <div @click.stop="openTaskDetail(task.id)" 
+                                                :class="task.task_type === 'bug' ? 'bg-red-50 hover:bg-red-100 dark:bg-red-950/60 dark:hover:bg-red-900/80 border-red-300 dark:border-red-800 text-red-900 dark:text-red-200' : 'bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/60 dark:hover:bg-blue-900/80 border-blue-300 dark:border-blue-800 text-blue-900 dark:text-blue-200'"
+                                                class="p-1.5 rounded-xl border text-[11px] font-semibold cursor-pointer shadow-2xs hover:shadow-md transition-all duration-150 transform hover:-translate-y-0.5 flex items-center justify-between group" 
+                                                :title="task.title + ' (Статус: ' + getStatusLabel(task.status) + ')'">
+                                                <div class="flex items-center space-x-1.5 truncate">
+                                                    <span class="w-2 h-2 rounded-full shrink-0" :class="task.task_type === 'bug' ? 'bg-red-500' : getPriorityColor(task.priority)"></span>
+                                                    <span x-show="task.task_type === 'bug'" class="text-[10px] shrink-0">🐞</span>
+                                                    <span class="truncate font-medium" x-text="task.title"></span>
+                                                </div>
+
+                                                <!-- Assignee Avatar Dot -->
+                                                <template x-if="task.assignee">
+                                                    <div class="w-4 h-4 rounded-full text-white font-bold text-[8px] flex items-center justify-center shrink-0 shadow-xs" :style="{ backgroundColor: task.assignee.avatar_color }" :title="'Исполнитель: ' + task.assignee.full_name">
+                                                        <span x-text="getInitials(task.assignee.full_name)"></span>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+
+            </main>
+
+            <!-- ---------------- MODAL: TASK / BUG DETAILS ---------------- -->
+            <div x-show="showDetailModal" class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+                <div @click.away="showDetailModal = false" class="bg-white dark:bg-slate-800 w-full max-w-6xl rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden flex flex-col h-[90vh] max-h-[850px]">
+                    
+                    <!-- Header -->
+                    <div class="px-6 py-3.5 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between bg-slate-50 dark:bg-slate-800/80 shrink-0">
+                        <div class="flex items-center space-x-3">
+                            <span class="font-mono text-xs text-slate-400" x-text="'#' + activeTask.id"></span>
+                            <span x-show="activeTask.task_type === 'bug'" class="px-2 py-0.5 rounded text-xs font-bold bg-red-600 text-white">БАГ</span>
+                            <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold" :class="getStatusBadgeClass(activeTask.status)" x-text="getStatusLabel(activeTask.status)"></span>
+                        </div>
+
+                        <div class="flex items-center space-x-2">
+                            <button x-show="activeTask.status !== 'done'" @click="completeActiveTask()" class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow transition flex items-center space-x-1.5">
+                                <i data-lucide="check-circle" class="w-4 h-4"></i>
+                                <span x-text="activeTask.task_type === 'bug' ? 'Исправлен / Завершить' : 'Завершить задачу'"></span>
+                            </button>
+                            <button x-show="activeTask.status === 'done' || activeTask.status === 'in_review'" @click="openReopenModal()" class="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow transition flex items-center space-x-1.5" title="Вернуть задачу в работу с комментарием">
+                                <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                                <span>Вернуть в работу</span>
+                            </button>
+                            <span x-show="activeTask.status === 'done'" class="px-3 py-1 bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 rounded-xl text-xs font-bold flex items-center space-x-1 border border-emerald-200">
+                                <i data-lucide="check-check" class="w-4 h-4 text-emerald-600"></i>
+                                <span>Завершено</span>
+                            </span>
+                            <button @click="deleteTask(activeTask.id)" class="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg transition" title="Удалить">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                            <button @click="showDetailModal = false" class="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg">
+                                <i data-lucide="x" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Side-by-Side 2 Columns Body Container -->
+                    <div class="flex-1 grid grid-cols-1 lg:grid-cols-12 overflow-hidden">
+                        
+                        <!-- LEFT COLUMN (7 of 12 cols, ~60%): Task Details Body -->
+                        <div class="lg:col-span-7 p-6 overflow-y-auto custom-scrollbar space-y-6 border-b lg:border-b-0 lg:border-r border-slate-200 dark:border-slate-700">
+                            <!-- Task Title Field -->
+                            <div>
+                                <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Заголовок</label>
+                                <input type="text" x-model="activeTask.title" @change="updateActiveTaskField('title', activeTask.title)" class="w-full text-xl font-bold bg-transparent border-b border-slate-200 dark:border-slate-700 focus:border-brand-500 pb-1 outline-none text-slate-900 dark:text-white">
+                            </div>
+
+                            <!-- Task Roles Box: Постановщик, Исполнитель, Наблюдатели -->
+                            <div class="bg-slate-50 dark:bg-slate-700/40 p-4 rounded-xl space-y-3 border border-slate-200 dark:border-slate-700">
+                                <h4 class="text-xs font-bold uppercase text-slate-400 flex items-center space-x-1.5">
+                                    <i data-lucide="users" class="w-4 h-4 text-brand-600"></i>
+                                    <span>Участники и роли по задаче</span>
+                                </h4>
+
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                                    <!-- Role 1: Постановщик -->
+                                    <div class="bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
+                                        <div class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1 flex items-center space-x-1">
+                                            <span>👑 Постановщик (Автор)</span>
+                                        </div>
+                                        <template x-if="activeTask.creator">
+                                            <div class="flex items-center space-x-2 mt-1">
+                                                <div class="w-6 h-6 rounded-full text-white font-bold text-[10px] flex items-center justify-center shrink-0" :style="{ backgroundColor: activeTask.creator.avatar_color }">
+                                                    <span x-text="getInitials(activeTask.creator.full_name)"></span>
+                                                </div>
+                                                <div class="truncate">
+                                                    <div class="font-semibold text-slate-800 dark:text-slate-100 truncate text-xs" x-text="activeTask.creator.full_name"></div>
+                                                    <div class="text-[10px] text-slate-400 truncate" x-text="activeTask.creator.role || 'Автор'"></div>
+                                                </div>
+                                            </div>
+                                        </template>
+                                    </div>
+
+                                    <!-- Role 2: Исполнитель -->
+                                    <div class="bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
+                                        <div class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1 flex items-center space-x-1">
+                                            <span>🛠️ Исполнитель</span>
+                                        </div>
+                                        <select x-model="activeTask.assignee_id" @change="updateActiveTaskField('assignee_id', activeTask.assignee_id)" class="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded text-xs py-1 px-1.5 outline-none font-semibold mt-1">
+                                            <option :value="null">Не назначен</option>
+                                            <template x-for="u in usersList" :key="u.id">
+                                                <option :value="u.id" x-text="u.full_name"></option>
+                                            </template>
+                                        </select>
+                                    </div>
+
+                                    <!-- Role 3: Наблюдатели -->
+                                    <div class="bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
+                                        <div class="flex items-center justify-between mb-1">
+                                            <div class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                                                <span>👁️ Наблюдатели (<span x-text="activeTask.watchers ? activeTask.watchers.length : 0"></span>)</span>
+                                            </div>
+                                            <button @click="toggleMyWatcher(activeTask.id)" :class="isWatching(activeTask) ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'" class="px-2 py-0.5 rounded text-[10px] font-semibold transition flex items-center space-x-1">
+                                                <i data-lucide="eye" class="w-3 h-3"></i>
+                                                <span x-text="isWatching(activeTask) ? 'Вы наблюдаете' : 'Буду наблюдать'"></span>
+                                            </button>
+                                        </div>
+                                        <div class="flex flex-wrap gap-1 mt-1">
+                                            <template x-for="w in activeTask.watchers" :key="w.id">
+                                                <div class="flex items-center space-x-1 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded text-[10px]" :title="w.full_name + ' (' + w.role + ')'">
+                                                    <span class="w-2 h-2 rounded-full shrink-0" :style="{ backgroundColor: w.avatar_color }"></span>
+                                                    <span class="truncate max-w-[80px]" x-text="w.full_name.split(' ')[0]"></span>
+                                                </div>
+                                            </template>
+                                            <span x-show="!activeTask.watchers || !activeTask.watchers.length" class="text-[11px] text-slate-400 italic">Нет наблюдателей</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Grid Fields: Status, Priority / Severity, Due Date -->
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-slate-50 dark:bg-slate-700/40 p-4 rounded-xl">
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Статус</label>
+                                    <select x-model="activeTask.status" @change="updateActiveTaskField('status', activeTask.status)" class="w-full bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-xs py-1.5 px-2 outline-none">
+                                        <option value="todo">К выполнению</option>
+                                        <option value="in_progress">В работе</option>
+                                        <option value="in_review">На проверке</option>
+                                        <option value="done">Завершена</option>
+                                    </select>
+                                </div>
+
+                                <div x-show="activeTask.task_type !== 'bug'">
+                                    <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Приоритет</label>
+                                    <select x-model="activeTask.priority" @change="updateActiveTaskField('priority', activeTask.priority)" class="w-full bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-xs py-1.5 px-2 outline-none">
+                                        <option value="low">Низкий</option>
+                                        <option value="medium">Средний</option>
+                                        <option value="high">Высокий</option>
+                                        <option value="urgent">Срочный</option>
+                                    </select>
+                                </div>
+
+                                <div x-show="activeTask.task_type === 'bug'">
+                                    <label class="block text-xs font-semibold text-red-500 mb-1">Критичность бага</label>
+                                    <select x-model="activeTask.severity" @change="updateActiveTaskField('severity', activeTask.severity)" class="w-full bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-xs py-1.5 px-2 outline-none font-semibold">
+                                        <option value="critical">Critical (Блокер)</option>
+                                        <option value="major">Major (Высокий приоритет)</option>
+                                        <option value="minor">Minor (Средний приоритет)</option>
+                                        <option value="trivial">Trivial (Минорная)</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Срок сдачи</label>
+                                    <input type="date" x-model="activeTask.due_date" @change="updateActiveTaskField('due_date', activeTask.due_date)" class="w-full bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-xs py-1.5 px-2 outline-none">
+                                </div>
+                            </div>
+
+                            <!-- Description Field -->
+                            <div>
+                                <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Описание задачи</label>
+                                <textarea x-model="activeTask.description" @change="updateActiveTaskField('description', activeTask.description)" rows="3" class="w-full p-3 bg-slate-50 dark:bg-slate-700/40 rounded-xl border border-slate-200 dark:border-slate-700 text-sm focus:ring-2 focus:ring-brand-500 outline-none" placeholder="Добавьте описание..."></textarea>
+                            </div>
+
+                            <!-- Steps to Reproduce (if Bug) -->
+                            <div x-show="activeTask.task_type === 'bug'">
+                                <label class="block text-xs font-bold uppercase text-red-500 mb-1">Шаги для воспроизведения бага</label>
+                                <textarea x-model="activeTask.steps_to_reproduce" @change="updateActiveTaskField('steps_to_reproduce', activeTask.steps_to_reproduce)" rows="3" class="w-full p-3 bg-red-50/50 dark:bg-red-950/20 rounded-xl border border-red-200 dark:border-red-900 text-sm font-mono focus:ring-2 focus:ring-red-500 outline-none" placeholder="1. Открыть страницу...&#10;2. Нажать на..."></textarea>
+                            </div>
+
+                            <!-- Attachments Section Dropzone -->
+                            <div class="bg-gradient-to-br from-blue-500/10 via-indigo-500/10 to-brand-500/10 dark:from-blue-900/40 dark:via-indigo-900/30 dark:to-slate-800 border-2 border-dashed border-brand-500 dark:border-brand-400 rounded-2xl p-4 shadow-sm">
+                                <div class="flex items-center justify-between mb-3">
+                                    <div class="flex items-center space-x-2.5">
+                                        <span class="p-2 bg-brand-600 text-white rounded-xl shadow-xs">
+                                            <i data-lucide="paperclip" class="w-4 h-4"></i>
+                                        </span>
+                                        <div>
+                                            <label class="block text-xs font-bold uppercase text-brand-700 dark:text-blue-300">Вложения задачи</label>
+                                            <span class="text-[11px] text-slate-500 dark:text-slate-400">Документы и материалы</span>
+                                        </div>
+                                    </div>
+                                    <label class="cursor-pointer text-xs bg-brand-600 hover:bg-brand-700 text-white px-3.5 py-1.5 rounded-xl font-bold shadow-md transition flex items-center space-x-1.5">
+                                        <i data-lucide="upload-cloud" class="w-4 h-4"></i>
+                                        <span x-text="uploadingFile ? 'Загрузка...' : 'Загрузить'"></span>
+                                        <input type="file" multiple class="hidden" @change="uploadAttachment($event)" :disabled="uploadingFile">
+                                    </label>
+                                </div>
+
+                                <!-- Uploaded Files List Grid -->
+                                <div class="grid grid-cols-1 gap-2.5 mt-2" x-show="activeTask.attachments && activeTask.attachments.length">
+                                    <template x-for="att in activeTask.attachments" :key="att.id">
+                                        <div class="flex items-center justify-between p-2.5 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs text-xs">
+                                            <div class="flex items-center space-x-2.5 truncate">
+                                                <div class="p-1.5 bg-blue-100 dark:bg-blue-900/60 text-brand-600 dark:text-blue-300 rounded-lg shrink-0">
+                                                    <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+                                                </div>
+                                                <div class="truncate">
+                                                    <a :href="att.file_path" target="_blank" class="font-semibold text-slate-800 dark:text-slate-200 hover:underline truncate block" x-text="att.filename"></a>
+                                                    <span class="text-slate-400 text-[10px]" x-text="formatFileSize(att.file_size)"></span>
+                                                </div>
+                                            </div>
+
+                                            <div class="flex items-center space-x-1 shrink-0 ml-2">
+                                                <a :href="att.file_path" download target="_blank" class="p-1 text-slate-400 hover:text-brand-600 rounded">
+                                                    <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                                                </a>
+                                                <button @click="deleteAttachment(att.id)" class="p-1 text-slate-400 hover:text-red-600 rounded">
+                                                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+
+                                <div x-show="!activeTask.attachments || activeTask.attachments.length === 0" class="text-center py-2 text-xs text-slate-500 dark:text-slate-400 font-medium">
+                                    Вложения пока отсутствуют.
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- RIGHT COLUMN (5 of 12 cols, ~40%): Dedicated Task Discussion Chat -->
+                        <div class="lg:col-span-5 bg-slate-50/80 dark:bg-slate-900/60 p-4 flex flex-col h-full overflow-hidden border-t lg:border-t-0">
+                            <!-- Chat Header Toolbar -->
+                            <div class="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700/80 shrink-0">
+                                <div class="flex items-center space-x-2">
+                                    <span class="p-1.5 bg-brand-600 text-white rounded-lg shadow-xs">
+                                        <i data-lucide="messages-square" class="w-4 h-4"></i>
+                                    </span>
+                                    <div>
+                                        <h3 class="font-bold text-xs uppercase tracking-wider text-slate-800 dark:text-white">Чат задачи</h3>
+                                        <p class="text-[10px] text-slate-400">История сохранется</p>
+                                    </div>
+                                </div>
+
+                                <!-- Employee Invite Dropdown -->
+                                <select @change="inviteUserToChat($event.target.value); $event.target.value = ''" class="bg-indigo-50 dark:bg-indigo-950/80 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 text-[11px] rounded-lg py-1 px-2 font-bold outline-none cursor-pointer hover:bg-indigo-100 transition max-w-[140px] truncate">
+                                    <option value="">+ Пригласить...</option>
+                                    <template x-for="u in usersList" :key="u.id">
+                                        <option :value="u.id" x-text="u.full_name"></option>
+                                    </template>
+                                </select>
+                            </div>
+
+                            <!-- Chat Messages Timeline -->
+                            <div class="flex-1 overflow-y-auto custom-scrollbar space-y-2.5 my-2 pr-1">
+                                <template x-for="comm in activeComments" :key="comm.id">
+                                    <div class="flex items-start space-x-2.5 p-2.5 rounded-xl text-xs transition" 
+                                        :class="comm.content.startsWith('📢') ? 'bg-indigo-50/90 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800' : (comm.content.startsWith('⏪') ? 'bg-amber-50/90 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800' : (comm.content.startsWith('📎') ? 'bg-blue-50/90 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800' : 'bg-white dark:bg-slate-800 shadow-2xs border border-slate-200/80 dark:border-slate-700'))">
+                                        <div class="w-7 h-7 rounded-full text-white font-bold text-[10px] flex items-center justify-center shrink-0 mt-0.5 shadow-2xs" :style="{ backgroundColor: comm.author ? comm.author.avatar_color : '#3b82f6' }">
+                                            <span x-text="getInitials(comm.author ? comm.author.full_name : 'U')"></span>
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <div class="flex items-center justify-between text-[11px] mb-0.5">
+                                                <span class="font-bold text-slate-800 dark:text-slate-100 truncate" x-text="comm.author ? comm.author.full_name : 'Пользователь'"></span>
+                                                <span class="text-slate-400 text-[9px] shrink-0" x-text="formatDate(comm.created_at)"></span>
+                                            </div>
+                                            <p class="text-xs text-slate-800 dark:text-slate-200 leading-snug break-words whitespace-pre-line font-sans" x-text="comm.content"></p>
+                                        </div>
+                                    </div>
+                                </template>
+
+                                <template x-if="!activeComments || activeComments.length === 0">
+                                    <div class="py-12 text-center text-xs text-slate-400 dark:text-slate-500">
+                                        <i data-lucide="messages-square" class="w-8 h-8 mx-auto mb-2 opacity-40"></i>
+                                        <p>Обсуждение еще не начато.</p>
+                                        <p class="text-[10px] mt-1">Отправьте сообщение или прикрепите файл!</p>
+                                    </div>
+                                </template>
+                            </div>
+
+                            <!-- Chat Actions & Input Form -->
+                            <div class="pt-2 border-t border-slate-200 dark:border-slate-700/80 shrink-0 space-y-2">
+                                <!-- Mentions chips bar -->
+                                <div class="flex items-center space-x-1 text-[10px] overflow-x-auto custom-scrollbar pb-1">
+                                    <span class="text-slate-400 font-bold shrink-0">Упомянуть:</span>
+                                    <template x-for="u in usersList" :key="u.id">
+                                        <button type="button" @click="insertMention(u.username)" class="px-1.5 py-0.5 bg-slate-200/70 hover:bg-brand-100 dark:bg-slate-700 text-brand-700 dark:text-blue-300 rounded font-mono text-[10px] shrink-0 font-semibold transition">
+                                            <span x-text="'@' + u.username"></span>
+                                        </button>
+                                    </template>
+                                </div>
+
+                                <!-- Hidden File Input for Chat Attachments -->
+                                <input type="file" multiple x-ref="chatFileInput" @change="uploadChatAttachment($event)" class="hidden">
+
+                                <!-- Input Form with paperclip file attach button -->
+                                <form @submit.prevent="submitComment()" class="flex items-center gap-1.5">
+                                    <button type="button" @click="$refs.chatFileInput.click()" class="p-2 text-slate-500 hover:text-brand-600 dark:text-slate-400 dark:hover:text-blue-400 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shrink-0 transition" title="Прикрепить файлы в чат">
+                                        <i data-lucide="paperclip" class="w-4 h-4"></i>
+                                    </button>
+                                    <input type="text" x-model="newCommentText" placeholder="Написать сообщение..." required class="flex-1 px-3 py-2 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500 shadow-2xs">
+                                    <button type="submit" class="px-3.5 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center space-x-1 shrink-0">
+                                        <i data-lucide="send" class="w-3.5 h-3.5"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ---------------- MODAL: CREATE TASK / BUG ---------------- -->
+            <div x-show="showCreateModal" class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+                <div @click.away="showCreateModal = false" class="bg-white dark:bg-slate-800 w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 p-6">
+                    <div class="flex items-center justify-between mb-4 border-b border-slate-100 dark:border-slate-700 pb-3">
+                        <h3 class="text-lg font-bold" x-text="createTaskForm.task_type === 'bug' ? 'Зафиксировать баг' : 'Создать новую задачу'"></h3>
+                        <button @click="showCreateModal = false" class="p-1 text-slate-400 hover:text-slate-600">
+                            <i data-lucide="x" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+
+                    <form @submit.prevent="createTask()">
+                        <div class="space-y-4">
+                            <!-- Type Switcher -->
+                            <div>
+                                <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Тип тикета</label>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <button type="button" @click="createTaskForm.task_type = 'task'" :class="createTaskForm.task_type === 'task' ? 'bg-brand-600 text-white font-semibold' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'" class="py-2 rounded-lg text-xs transition flex items-center justify-center space-x-1.5">
+                                        <i data-lucide="check-square" class="w-4 h-4"></i>
+                                        <span>Обычная задача</span>
+                                    </button>
+                                    <button type="button" @click="createTaskForm.task_type = 'bug'" :class="createTaskForm.task_type === 'bug' ? 'bg-red-600 text-white font-semibold' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'" class="py-2 rounded-lg text-xs transition flex items-center justify-center space-x-1.5">
+                                        <i data-lucide="bug" class="w-4 h-4"></i>
+                                        <span>Отчёт об ошибке (Баг)</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Название *</label>
+                                <input type="text" x-model="createTaskForm.title" required :placeholder="createTaskForm.task_type === 'bug' ? 'Ошибка при сохранении профиля...' : 'Например: Обновить верстку шапки'" class="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Описание</label>
+                                <textarea x-model="createTaskForm.description" rows="2" placeholder="Подробная информация..." class="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500"></textarea>
+                            </div>
+
+                            <!-- Bug Steps to reproduce -->
+                            <div x-show="createTaskForm.task_type === 'bug'">
+                                <label class="block text-xs font-semibold uppercase text-red-500 mb-1">Шаги для воспроизведения</label>
+                                <textarea x-model="createTaskForm.steps_to_reproduce" rows="3" placeholder="1. Открыть браузер&#10;2. Нажать Войти" class="w-full px-3.5 py-2 bg-red-50/40 dark:bg-red-950/20 border border-red-200 dark:border-red-900 rounded-lg text-sm outline-none font-mono focus:ring-2 focus:ring-red-500"></textarea>
+                            </div>
+
+                            <!-- Attach File during Creation (Prominent Right Below Description) -->
+                            <div class="bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-brand-500/10 dark:from-blue-900/30 dark:to-slate-700/60 p-4 rounded-2xl border-2 border-dashed border-brand-500 dark:border-brand-400">
+                                <div class="flex items-center space-x-2 mb-1.5">
+                                    <span class="p-1.5 bg-brand-600 text-white rounded-lg shadow-xs">
+                                        <i data-lucide="paperclip" class="w-4 h-4"></i>
+                                    </span>
+                                    <div>
+                                        <label class="block text-xs font-bold uppercase text-brand-700 dark:text-blue-300">Прикрепить файлы и скриншоты</label>
+                                        <span class="text-[11px] text-slate-500 dark:text-slate-400">Прикрепите скриншоты ошибки или ТЗ</span>
+                                    </div>
+                                </div>
+                                <input type="file" multiple @change="handleCreateFileSelect($event)" class="w-full text-xs text-slate-600 dark:text-slate-300 file:mr-3 file:py-1.5 file:px-3.5 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-brand-600 file:text-white hover:file:bg-brand-700 cursor-pointer">
+                                <template x-if="createTaskPendingFiles && createTaskPendingFiles.length">
+                                    <p class="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold mt-2 flex items-center space-x-1">
+                                        <i data-lucide="check-circle" class="w-4 h-4"></i>
+                                        <span>Выбрано файлов: <strong x-text="createTaskPendingFiles.length"></strong></span>
+                                    </p>
+                                </template>
+                            </div>
+
+                            <!-- Roles Assignment during Creation -->
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">🛠️ Исполнитель</label>
+                                    <select x-model="createTaskForm.assignee_id" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-sm outline-none">
+                                        <option :value="null">Не назначен</option>
+                                        <template x-for="u in usersList" :key="u.id">
+                                            <option :value="u.id" x-text="u.full_name"></option>
+                                        </template>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Срок исправления</label>
+                                    <input type="date" x-model="createTaskForm.due_date" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-sm outline-none">
+                                </div>
+                            </div>
+
+                            <!-- Watchers Selection -->
+                            <div>
+                                <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">👁️ Наблюдатели (будут следить за тикетом)</label>
+                                <div class="flex flex-wrap gap-2 bg-slate-50 dark:bg-slate-700/50 p-2.5 rounded-lg border border-slate-200 dark:border-slate-600">
+                                    <template x-for="u in usersList" :key="u.id">
+                                        <label class="flex items-center space-x-1.5 bg-white dark:bg-slate-700 px-2 py-1 rounded border border-slate-200 dark:border-slate-600 text-xs cursor-pointer">
+                                            <input type="checkbox" :value="u.id" x-model="createTaskForm.watcher_ids" class="rounded text-brand-600 focus:ring-0">
+                                            <span x-text="u.full_name"></span>
+                                        </label>
+                                    </template>
+                                </div>
+                            </div>
+
+                            <!-- Priority & Status -->
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Статус</label>
+                                    <select x-model="createTaskForm.status" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-sm outline-none">
+                                        <option value="todo">К выполнению</option>
+                                        <option value="in_progress">В работе</option>
+                                        <option value="in_review">На проверке</option>
+                                        <option value="done">Завершена</option>
+                                    </select>
+                                </div>
+                                <div x-show="createTaskForm.task_type !== 'bug'">
+                                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Приоритет</label>
+                                    <select x-model="createTaskForm.priority" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-sm outline-none">
+                                        <option value="low">Низкий</option>
+                                        <option value="medium">Средний</option>
+                                        <option value="high">Высокий</option>
+                                        <option value="urgent">Срочный</option>
+                                    </select>
+                                </div>
+                                <div x-show="createTaskForm.task_type === 'bug'">
+                                    <label class="block text-xs font-semibold uppercase text-red-500 mb-1">Критичность</label>
+                                    <select x-model="createTaskForm.severity" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-sm outline-none font-semibold">
+                                        <option value="critical">Critical (Блокер)</option>
+                                        <option value="major">Major (Высокий приоритет)</option>
+                                        <option value="minor">Minor (Средний приоритет)</option>
+                                        <option value="trivial">Trivial (Минорная)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="pt-4 flex justify-end space-x-3">
+                                <button type="button" @click="showCreateModal = false" class="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg transition">Отмена</button>
+                                <button type="submit" :class="createTaskForm.task_type === 'bug' ? 'bg-red-600 hover:bg-red-700' : 'bg-brand-600 hover:bg-brand-700'" class="px-5 py-2 text-white text-sm font-medium rounded-lg shadow transition" x-text="createTaskForm.task_type === 'bug' ? 'Зафиксировать баг' : 'Создать задачу'"></button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- ---------------- MODAL: REOPEN TASK WITH COMMENT ---------------- -->
+            <div x-show="showReopenModal" class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+                <div @click.away="showReopenModal = false" class="bg-white dark:bg-slate-800 w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 p-6 space-y-4">
+                    <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-3">
+                        <h3 class="font-bold text-base text-slate-900 dark:text-white flex items-center space-x-2">
+                            <i data-lucide="rotate-ccw" class="w-5 h-5 text-amber-500"></i>
+                            <span>Возврат задачи в работу</span>
+                        </h3>
+                        <button @click="showReopenModal = false" class="text-slate-400 hover:text-slate-600">
+                            <i data-lucide="x" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Укажите причину или замечания, почему задачу необходимо вернуть в статус «В работе»:</p>
+
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Комментарий к возврату *</label>
+                        <textarea x-model="reopenReason" rows="3" placeholder="Например: Не все требования выполнены, необходимо доработать интерфейс..." class="w-full p-3 bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl text-sm outline-none focus:ring-2 focus:ring-amber-500 text-slate-900 dark:text-white"></textarea>
+                    </div>
+
+                    <div class="flex justify-end space-x-3 pt-2">
+                        <button type="button" @click="showReopenModal = false" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700 rounded-xl transition">Отмена</button>
+                        <button type="button" @click="confirmReopenTask()" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow transition flex items-center space-x-1.5">
+                            <i data-lucide="corner-up-left" class="w-4 h-4"></i>
+                            <span>Вернуть в работу</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </template>
+
+    <script src="js/app.js?v=18"></script>
+</body>
+</html>

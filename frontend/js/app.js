@@ -1,0 +1,781 @@
+document.addEventListener('alpine:init', () => {
+    Alpine.data('taskTrackerApp', () => ({
+        // State
+        token: localStorage.getItem('tt_token') || '',
+        currentUser: JSON.parse(localStorage.getItem('tt_user') || '{}'),
+        activeTab: 'cabinet', // 'cabinet', 'kanban', 'list', 'bugs'
+        darkMode: localStorage.getItem('tt_dark') === 'true',
+
+        // Auth state
+        authMode: 'login', // 'login' | 'register'
+        authError: '',
+        loginForm: { username: '', password: '' },
+        registerForm: { username: '', full_name: '', email: '', role: 'Разработчик', password: '' },
+
+        // Data lists
+        tasks: [],
+        usersList: [],
+        userStats: { total_assigned: 0, in_progress: 0, completed: 0, urgent: 0, created_by_me: 0, open_bugs_count: 0 },
+        fullStats: { total_tasks: 0, completed_tasks: 0, tasks_completion_rate: 0, total_bugs: 0, fixed_bugs: 0, bugs_resolution_rate: 0, critical_bugs: 0, status_breakdown: {}, bug_severity_breakdown: {}, priority_breakdown: {}, user_performance: [] },
+        
+        // Calendar State
+        calendarDate: new Date(),
+        filterCalendarType: '',
+
+        // Filters
+        searchQuery: '',
+        filterMyOnly: false,
+        filterPriority: '',
+        filterAssignee: '',
+        filterBugSeverity: '',
+        filterBugStatus: '',
+        bugViewMode: 'list', // 'list' | 'cards'
+
+        // Modals
+        showDetailModal: false,
+        activeTask: {},
+        activeComments: [],
+        newCommentText: '',
+        uploadingFile: false,
+
+        showCreateModal: false,
+        showReopenModal: false,
+        reopenReason: '',
+        createTaskPendingFiles: [],
+        createTaskForm: {
+            title: '',
+            description: '',
+            status: 'todo',
+            priority: 'medium',
+            assignee_id: null,
+            due_date: '',
+            tags: '',
+            task_type: 'task',
+            severity: 'major',
+            steps_to_reproduce: ''
+        },
+
+        kanbanColumns: [
+            { status: 'todo', title: 'К выполнению', color: 'bg-slate-400' },
+            { status: 'in_progress', title: 'В работе', color: 'bg-amber-500' },
+            { status: 'in_review', title: 'На проверке', color: 'bg-blue-500' },
+            { status: 'done', title: 'Завершенные', color: 'bg-emerald-500' }
+        ],
+
+        get isAuthenticated() {
+            return !!this.token;
+        },
+
+        get myActiveTasks() {
+            if (!this.currentUser || !this.currentUser.id) return [];
+            return this.tasks.filter(t => t.assignee_id === this.currentUser.id && t.status !== 'done');
+        },
+
+        get allBugs() {
+            return this.tasks.filter(t => t.task_type === 'bug');
+        },
+
+        get filteredBugs() {
+            return this.allBugs.filter(b => {
+                if (this.filterBugStatus && b.status !== this.filterBugStatus) return false;
+                if (this.filterBugSeverity && b.severity !== this.filterBugSeverity) return false;
+                if (this.filterAssignee && b.assignee_id != this.filterAssignee) return false;
+                if (this.searchQuery) {
+                    const q = this.searchQuery.toLowerCase();
+                    return b.title.toLowerCase().includes(q) || (b.description && b.description.toLowerCase().includes(q)) || (b.tags && b.tags.toLowerCase().includes(q));
+                }
+                return true;
+            });
+        },
+
+        // Calendar Getters & Methods
+        get calendarTitle() {
+            const months = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+            return `${months[this.calendarDate.getMonth()]} ${this.calendarDate.getFullYear()}`;
+        },
+
+        get calendarDays() {
+            const year = this.calendarDate.getFullYear();
+            const month = this.calendarDate.getMonth();
+            
+            const firstDayOfMonth = new Date(year, month, 1);
+            const lastDayOfMonth = new Date(year, month + 1, 0);
+
+            let firstDayOfWeek = firstDayOfMonth.getDay();
+            if (firstDayOfWeek === 0) firstDayOfWeek = 7;
+
+            const daysInMonth = lastDayOfMonth.getDate();
+            const daysInPrevMonth = new Date(year, month, 0).getDate();
+
+            const todayStr = this.formatDateISO(new Date());
+            const days = [];
+
+            for (let i = firstDayOfWeek - 1; i > 0; i--) {
+                const d = daysInPrevMonth - i + 1;
+                const prevDate = new Date(year, month - 1, d);
+                const dateStr = this.formatDateISO(prevDate);
+                days.push({
+                    dateStr: dateStr,
+                    dayNumber: d,
+                    isCurrentMonth: false,
+                    isToday: dateStr === todayStr,
+                    tasks: this.getTasksForDate(dateStr)
+                });
+            }
+
+            for (let d = 1; d <= daysInMonth; d++) {
+                const currDate = new Date(year, month, d);
+                const dateStr = this.formatDateISO(currDate);
+                days.push({
+                    dateStr: dateStr,
+                    dayNumber: d,
+                    isCurrentMonth: true,
+                    isToday: dateStr === todayStr,
+                    tasks: this.getTasksForDate(dateStr)
+                });
+            }
+
+            const totalCells = days.length > 35 ? 42 : 35;
+            const remaining = totalCells - days.length;
+            for (let d = 1; d <= remaining; d++) {
+                const nextDate = new Date(year, month + 1, d);
+                const dateStr = this.formatDateISO(nextDate);
+                days.push({
+                    dateStr: dateStr,
+                    dayNumber: d,
+                    isCurrentMonth: false,
+                    isToday: dateStr === todayStr,
+                    tasks: this.getTasksForDate(dateStr)
+                });
+            }
+
+            return days;
+        },
+
+        formatDateISO(d) {
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${y}-${m}-${day}`;
+        },
+
+        getTasksForDate(dateStr) {
+            if (!dateStr) return [];
+            return this.tasks.filter(t => {
+                if (!t.due_date) return false;
+                if (t.due_date !== dateStr) return false;
+                if (this.filterCalendarType && t.task_type !== this.filterCalendarType) return false;
+                return true;
+            });
+        },
+
+        prevCalendarMonth() {
+            this.calendarDate = new Date(this.calendarDate.getFullYear(), this.calendarDate.getMonth() - 1, 1);
+            this.refreshIcons();
+        },
+
+        nextCalendarMonth() {
+            this.calendarDate = new Date(this.calendarDate.getFullYear(), this.calendarDate.getMonth() + 1, 1);
+            this.refreshIcons();
+        },
+
+        todayCalendarMonth() {
+            this.calendarDate = new Date();
+            this.refreshIcons();
+        },
+
+        init() {
+            this.$watch('darkMode', val => localStorage.setItem('tt_dark', val));
+            this.$nextTick(() => lucide.createIcons());
+
+            if (this.token) {
+                this.loadInitialData();
+            }
+        },
+
+        refreshIcons() {
+            setTimeout(() => lucide.createIcons(), 50);
+        },
+
+        // API Helper with Bearer Token
+        async apiFetch(url, options = {}) {
+            options.headers = options.headers || {};
+            if (this.token) {
+                options.headers['Authorization'] = `Bearer ${this.token}`;
+            }
+            if (options.body && typeof options.body === 'object' && !(options.body instanceof FormData)) {
+                options.headers['Content-Type'] = 'application/json';
+                options.body = JSON.stringify(options.body);
+            }
+
+            const response = await fetch(url, options);
+            if (response.status === 401) {
+                this.logout();
+                throw new Error('Сессия истекла. Пожалуйста, войдите снова.');
+            }
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(errData.detail || `Ошибка сервера: ${response.status}`);
+            }
+            if (response.status === 204) return null;
+            return await response.json();
+        },
+
+        // Auth Logic
+        async login() {
+            this.authError = '';
+            try {
+                const data = await this.apiFetch('/api/auth/login', {
+                    method: 'POST',
+                    body: this.loginForm
+                });
+                this.setAuthSession(data.access_token, data.user);
+            } catch (err) {
+                this.authError = err.message;
+            }
+        },
+
+        async register() {
+            this.authError = '';
+            try {
+                const data = await this.apiFetch('/api/auth/register', {
+                    method: 'POST',
+                    body: this.registerForm
+                });
+                this.setAuthSession(data.access_token, data.user);
+            } catch (err) {
+                this.authError = err.message;
+            }
+        },
+
+        quickLogin(username, password) {
+            this.loginForm.username = username;
+            this.loginForm.password = password;
+            this.login();
+        },
+
+        setAuthSession(token, user) {
+            this.token = token;
+            this.currentUser = user;
+            localStorage.setItem('tt_token', token);
+            localStorage.setItem('tt_user', JSON.stringify(user));
+            this.loginForm = { username: '', password: '' };
+            this.registerForm = { username: '', full_name: '', role: 'Разработчик', password: '' };
+            this.loadInitialData();
+        },
+
+        logout() {
+            this.token = '';
+            this.currentUser = {};
+            localStorage.removeItem('tt_token');
+            localStorage.removeItem('tt_user');
+            this.tasks = [];
+        },
+
+        // Load Data
+        async loadInitialData() {
+            await Promise.all([
+                this.fetchUsers(),
+                this.fetchTasks(),
+                this.fetchUserStats(),
+                this.fetchFullStats()
+            ]);
+            this.refreshIcons();
+        },
+
+        async fetchUsers() {
+            try {
+                this.usersList = await this.apiFetch('/api/users');
+            } catch (e) { console.error(e); }
+        },
+
+        async fetchUserStats() {
+            try {
+                this.userStats = await this.apiFetch('/api/stats/my-summary');
+            } catch (e) { console.error(e); }
+        },
+
+        async fetchFullStats() {
+            try {
+                this.fullStats = await this.apiFetch('/api/stats/full');
+            } catch (e) { console.error(e); }
+        },
+
+        async fetchTasks() {
+            try {
+                const params = new URLSearchParams();
+                if (this.filterMyOnly) params.append('my_tasks_only', 'true');
+                if (this.filterPriority) params.append('priority', this.filterPriority);
+                if (this.filterAssignee) params.append('assignee_id', this.filterAssignee);
+                if (this.searchQuery) params.append('search', this.searchQuery);
+
+                this.tasks = await this.apiFetch(`/api/tasks?${params.toString()}`);
+                this.refreshIcons();
+            } catch (e) { console.error(e); }
+        },
+
+        // Kanban Helpers
+        getTasksByStatus(status) {
+            return this.tasks.filter(t => t.status === status);
+        },
+
+        async changeTaskStatus(taskId, newStatus) {
+            try {
+                const updated = await this.apiFetch(`/api/tasks/${taskId}`, {
+                    method: 'PATCH',
+                    body: { status: newStatus }
+                });
+                const idx = this.tasks.findIndex(t => t.id === taskId);
+                if (idx !== -1) this.tasks[idx] = updated;
+                this.fetchUserStats();
+                this.refreshIcons();
+            } catch (e) { alert(e.message); }
+        },
+
+        async completeActiveTask() {
+            if (!this.activeTask || !this.activeTask.id) return;
+            try {
+                const updated = await this.apiFetch(`/api/tasks/${this.activeTask.id}`, {
+                    method: 'PATCH',
+                    body: { status: 'done' }
+                });
+                this.activeTask = updated;
+                const idx = this.tasks.findIndex(t => t.id === updated.id);
+                if (idx !== -1) this.tasks[idx] = updated;
+                this.fetchUserStats();
+                this.fetchFullStats();
+                this.refreshIcons();
+            } catch (e) { alert(e.message); }
+        },
+
+        openReopenModal() {
+            this.reopenReason = '';
+            this.showReopenModal = true;
+        },
+
+        async confirmReopenTask() {
+            if (!this.activeTask || !this.activeTask.id) return;
+            const reason = this.reopenReason.trim() || 'Без указания причины';
+            try {
+                // 1. Update status to in_progress
+                const updated = await this.apiFetch(`/api/tasks/${this.activeTask.id}`, {
+                    method: 'PATCH',
+                    body: { status: 'in_progress' }
+                });
+                this.activeTask = updated;
+
+                // 2. Post comment with return reason
+                const comm = await this.apiFetch(`/api/tasks/${this.activeTask.id}/comments`, {
+                    method: 'POST',
+                    body: { content: `⏪ **Задача возвращена в работу**\nПричина: ${reason}` }
+                });
+                if (!this.activeComments) this.activeComments = [];
+                this.activeComments.push(comm);
+                this.activeTask.comments_count = (this.activeTask.comments_count || 0) + 1;
+
+                // 3. Sync state
+                const idx = this.tasks.findIndex(t => t.id === updated.id);
+                if (idx !== -1) {
+                    this.tasks[idx] = updated;
+                    this.tasks[idx].comments_count = this.activeTask.comments_count;
+                }
+
+                this.showReopenModal = false;
+                this.reopenReason = '';
+                this.fetchUserStats();
+                this.fetchFullStats();
+                this.refreshIcons();
+            } catch (e) { alert(e.message); }
+        },
+
+        // Drag & Drop Kanban State & Methods
+        draggedTaskId: null,
+        dragOverStatus: null,
+
+        handleDragStart(e, task) {
+            this.draggedTaskId = task.id;
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', task.id);
+        },
+
+        handleDragEnd(e) {
+            this.draggedTaskId = null;
+            this.dragOverStatus = null;
+        },
+
+        handleDragOver(e, status) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            this.dragOverStatus = status;
+        },
+
+        handleDragLeave(e, status) {
+            if (this.dragOverStatus === status) {
+                this.dragOverStatus = null;
+            }
+        },
+
+        async handleDrop(e, targetStatus) {
+            e.preventDefault();
+            const taskId = this.draggedTaskId || parseInt(e.dataTransfer.getData('text/plain'));
+            this.dragOverStatus = null;
+            this.draggedTaskId = null;
+
+            if (!taskId) return;
+
+            const task = this.tasks.find(t => t.id === taskId);
+            if (task && task.status !== targetStatus) {
+                // Optimistic UI update
+                task.status = targetStatus;
+                await this.changeTaskStatus(taskId, targetStatus);
+                this.fetchFullStats();
+            }
+        },
+
+        moveTaskNext(task) {
+            const flow = ['todo', 'in_progress', 'in_review', 'done'];
+            const currIdx = flow.indexOf(task.status);
+            if (currIdx < flow.length - 1) {
+                this.changeTaskStatus(task.id, flow[currIdx + 1]);
+            }
+        },
+
+        moveTaskPrev(task) {
+            const flow = ['todo', 'in_progress', 'in_review', 'done'];
+            const currIdx = flow.indexOf(task.status);
+            if (currIdx > 0) {
+                this.changeTaskStatus(task.id, flow[currIdx - 1]);
+            }
+        },
+
+        // Task Detail & Editing
+        async openTaskDetail(taskId) {
+            try {
+                this.activeTask = await this.apiFetch(`/api/tasks/${taskId}`);
+                if (!this.activeTask.attachments) this.activeTask.attachments = [];
+                this.activeComments = await this.apiFetch(`/api/tasks/${taskId}/comments`);
+                this.showDetailModal = true;
+                this.refreshIcons();
+            } catch (e) { alert(e.message); }
+        },
+
+        async updateActiveTaskField(field, val) {
+            try {
+                const payload = {};
+                payload[field] = val;
+                const updated = await this.apiFetch(`/api/tasks/${this.activeTask.id}`, {
+                    method: 'PATCH',
+                    body: payload
+                });
+                this.activeTask = updated;
+                const idx = this.tasks.findIndex(t => t.id === updated.id);
+                if (idx !== -1) this.tasks[idx] = updated;
+                this.fetchUserStats();
+            } catch (e) { alert(e.message); }
+        },
+
+        async deleteTask(taskId) {
+            if (!confirm('Вы действительно хотите удалить эту задачу/баг?')) return;
+            try {
+                await this.apiFetch(`/api/tasks/${taskId}`, { method: 'DELETE' });
+                this.showDetailModal = false;
+                this.fetchTasks();
+                this.fetchUserStats();
+            } catch (e) { alert(e.message); }
+        },
+
+        // Attachments Logic
+        async uploadAttachment(event) {
+            const files = Array.from(event.target.files);
+            if (!files.length) return;
+
+            this.uploadingFile = true;
+            try {
+                const formData = new FormData();
+                for (const file of files) {
+                    formData.append('files', file);
+                }
+
+                const response = await fetch(`/api/tasks/${this.activeTask.id}/attachments/batch`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${this.token}`
+                    },
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const err = await response.json().catch(() => ({}));
+                    throw new Error(err.detail || 'Ошибка загрузки файлов');
+                }
+
+                const newAttachments = await response.json();
+                if (!this.activeTask.attachments) this.activeTask.attachments = [];
+                this.activeTask.attachments.push(...newAttachments);
+                
+                // Update in task list
+                const idx = this.tasks.findIndex(t => t.id === this.activeTask.id);
+                if (idx !== -1) this.tasks[idx].attachments = this.activeTask.attachments;
+
+                event.target.value = '';
+                this.refreshIcons();
+            } catch (e) {
+                alert(e.message);
+            } finally {
+                this.uploadingFile = false;
+            }
+        },
+
+        async uploadChatAttachment(event) {
+            const files = Array.from(event.target.files);
+            if (!files.length) return;
+
+            await this.uploadAttachment(event);
+
+            const filenames = files.map(f => f.name).join(', ');
+            try {
+                const comm = await this.apiFetch(`/api/tasks/${this.activeTask.id}/comments`, {
+                    method: 'POST',
+                    body: { content: `📎 **Прикреплен(ы) файл(ы):** ${filenames}` }
+                });
+                if (!this.activeComments) this.activeComments = [];
+                this.activeComments.push(comm);
+                this.activeTask.comments_count = (this.activeTask.comments_count || 0) + 1;
+                const idx = this.tasks.findIndex(t => t.id === this.activeTask.id);
+                if (idx !== -1) this.tasks[idx].comments_count = this.activeTask.comments_count;
+                this.refreshIcons();
+            } catch (e) { console.error(e); }
+        },
+
+        async deleteAttachment(attachmentId) {
+            if (!confirm('Удалить этот файл?')) return;
+            try {
+                await this.apiFetch(`/api/attachments/${attachmentId}`, { method: 'DELETE' });
+                this.activeTask.attachments = this.activeTask.attachments.filter(a => a.id !== attachmentId);
+                const idx = this.tasks.findIndex(t => t.id === this.activeTask.id);
+                if (idx !== -1) this.tasks[idx].attachments = this.activeTask.attachments;
+            } catch (e) { alert(e.message); }
+        },
+
+        handleCreateFileSelect(event) {
+            this.createTaskPendingFiles = Array.from(event.target.files);
+        },
+
+        formatFileSize(bytes) {
+            if (!bytes || bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        },
+
+        isImageFile(filename) {
+            if (!filename) return false;
+            const ext = filename.split('.').pop().toLowerCase();
+            return ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext);
+        },
+
+        async submitComment() {
+            if (!this.newCommentText.trim()) return;
+            try {
+                const comm = await this.apiFetch(`/api/tasks/${this.activeTask.id}/comments`, {
+                    method: 'POST',
+                    body: { content: this.newCommentText }
+                });
+                this.activeComments.push(comm);
+                this.newCommentText = '';
+                this.activeTask.comments_count = (this.activeTask.comments_count || 0) + 1;
+                const idx = this.tasks.findIndex(t => t.id === this.activeTask.id);
+                if (idx !== -1) this.tasks[idx].comments_count = this.activeTask.comments_count;
+                this.refreshIcons();
+            } catch (e) { alert(e.message); }
+        },
+
+        async inviteUserToChat(userId) {
+            if (!userId) return;
+            try {
+                const comm = await this.apiFetch(`/api/tasks/${this.activeTask.id}/invite`, {
+                    method: 'POST',
+                    body: { user_id: parseInt(userId) }
+                });
+                this.activeComments.push(comm);
+                this.activeTask.comments_count = (this.activeTask.comments_count || 0) + 1;
+                
+                // Refresh active task watchers
+                const updatedTask = await this.apiFetch(`/api/tasks/${this.activeTask.id}`);
+                this.activeTask = updatedTask;
+                const idx = this.tasks.findIndex(t => t.id === this.activeTask.id);
+                if (idx !== -1) this.tasks[idx] = updatedTask;
+
+                this.refreshIcons();
+            } catch (e) { alert(e.message); }
+        },
+
+        insertMention(username) {
+            if (!this.newCommentText) this.newCommentText = '';
+            if (!this.newCommentText.endsWith(' ') && this.newCommentText.length > 0) {
+                this.newCommentText += ' ';
+            }
+            this.newCommentText += `@${username} `;
+        },
+
+        // Create Task / Bug Modal
+        openCreateModal(defaultStatus = 'todo', taskType = 'task') {
+            this.createTaskPendingFiles = [];
+            this.createTaskForm = {
+                title: '',
+                description: '',
+                status: defaultStatus,
+                priority: taskType === 'bug' ? 'high' : 'medium',
+                assignee_id: this.currentUser.id || null,
+                due_date: '',
+                tags: taskType === 'bug' ? 'Bug' : '',
+                task_type: taskType,
+                severity: 'major',
+                steps_to_reproduce: '',
+                watcher_ids: []
+            };
+            this.showCreateModal = true;
+            this.refreshIcons();
+        },
+
+        isWatching(task) {
+            if (!task || !task.watchers || !this.currentUser) return false;
+            return task.watchers.some(w => w.id === this.currentUser.id);
+        },
+
+        async toggleMyWatcher(taskId) {
+            try {
+                const updated = await this.apiFetch(`/api/tasks/${taskId}/watchers/toggle`, { method: 'POST' });
+                if (this.activeTask && this.activeTask.id === taskId) {
+                    this.activeTask = updated;
+                }
+                const idx = this.tasks.findIndex(t => t.id === taskId);
+                if (idx !== -1) this.tasks[idx] = updated;
+                this.refreshIcons();
+            } catch (e) { alert(e.message); }
+        },
+
+        openCreateBugModal() {
+            this.openCreateModal('todo', 'bug');
+        },
+
+        async createTask() {
+            try {
+                const created = await this.apiFetch('/api/tasks', {
+                    method: 'POST',
+                    body: this.createTaskForm
+                });
+
+                // If user selected files during creation, upload batch now
+                if (this.createTaskPendingFiles && this.createTaskPendingFiles.length) {
+                    const formData = new FormData();
+                    for (const file of this.createTaskPendingFiles) {
+                        formData.append('files', file);
+                    }
+                    await fetch(`/api/tasks/${created.id}/attachments/batch`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${this.token}` },
+                        body: formData
+                    });
+                }
+                this.createTaskPendingFiles = [];
+                this.showCreateModal = false;
+                this.fetchTasks();
+                this.fetchUserStats();
+            } catch (e) { alert(e.message); }
+        },
+
+        // Formatting Utilities
+        getInitials(name) {
+            if (!name) return 'U';
+            return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+        },
+
+        formatDate(dateStr) {
+            if (!dateStr) return '';
+            const d = new Date(dateStr);
+            return d.toLocaleString('ru-RU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+        },
+
+        getTagsList(tagsStr) {
+            if (!tagsStr) return [];
+            return tagsStr.split(',').map(t => t.trim()).filter(Boolean);
+        },
+
+        isOverdue(dueDate, status) {
+            if (!dueDate || status === 'done') return false;
+            return new Date(dueDate) < new Date(new Date().toDateString());
+        },
+
+        getPriorityColor(priority) {
+            switch (priority) {
+                case 'urgent': return 'bg-red-500';
+                case 'high': return 'bg-orange-500';
+                case 'medium': return 'bg-amber-500';
+                case 'low': return 'bg-slate-400';
+                default: return 'bg-slate-400';
+            }
+        },
+
+        getPriorityBadgeClass(priority) {
+            switch (priority) {
+                case 'urgent': return 'bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300 border border-red-200 dark:border-red-800';
+                case 'high': return 'bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300 border border-orange-200 dark:border-orange-800';
+                case 'medium': return 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800';
+                case 'low': return 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-600';
+                default: return 'bg-slate-100 text-slate-700';
+            }
+        },
+
+        getPriorityLabel(priority) {
+            switch (priority) {
+                case 'urgent': return 'Срочно';
+                case 'high': return 'Высокий';
+                case 'medium': return 'Средний';
+                case 'low': return 'Низкий';
+                default: return priority;
+            }
+        },
+
+        getSeverityBadgeClass(severity) {
+            switch (severity) {
+                case 'critical': return 'bg-red-600 text-white font-bold shadow-xs';
+                case 'major': return 'bg-red-100 text-red-800 dark:bg-red-950/60 dark:text-red-300 border border-red-200 dark:border-red-800';
+                case 'minor': return 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800';
+                case 'trivial': return 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300';
+                default: return 'bg-slate-100 text-slate-700';
+            }
+        },
+
+        getSeverityLabel(severity) {
+            switch (severity) {
+                case 'critical': return 'Критический (Блокер)';
+                case 'major': return 'Высокий приоритет';
+                case 'minor': return 'Средний приоритет';
+                case 'trivial': return 'Минорный';
+                default: return severity || 'Не указана';
+            }
+        },
+
+        getStatusBadgeClass(status) {
+            switch (status) {
+                case 'todo': return 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300';
+                case 'in_progress': return 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300';
+                case 'in_review': return 'bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300';
+                case 'done': return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300';
+                default: return 'bg-slate-100 text-slate-700';
+            }
+        },
+
+        getStatusLabel(status) {
+            switch (status) {
+                case 'todo': return 'К выполнению';
+                case 'in_progress': return 'В работе';
+                case 'in_review': return 'На проверке';
+                case 'done': return 'Завершена';
+                default: return status;
+            }
+        }
+    }));
+});
