@@ -39,6 +39,7 @@ document.addEventListener('alpine:init', () => {
         uploadingFile: false,
 
         showCreateModal: false,
+        submittingTask: false,
         showReopenModal: false,
         reopenReason: '',
         createTaskPendingFiles: [],
@@ -621,6 +622,7 @@ document.addEventListener('alpine:init', () => {
 
         // Create Task / Bug Modal
         openCreateModal(defaultStatus = 'todo', taskType = 'task') {
+            this.submittingTask = false;
             this.createTaskPendingFiles = [];
             this.createTaskForm = {
                 title: '',
@@ -661,6 +663,8 @@ document.addEventListener('alpine:init', () => {
         },
 
         async createTask() {
+            if (this.submittingTask) return;
+            this.submittingTask = true;
             try {
                 const created = await this.apiFetch('/api/tasks', {
                     method: 'POST',
@@ -683,7 +687,11 @@ document.addEventListener('alpine:init', () => {
                 this.showCreateModal = false;
                 this.fetchTasks();
                 this.fetchUserStats();
-            } catch (e) { alert(e.message); }
+            } catch (e) {
+                alert(e.message);
+            } finally {
+                this.submittingTask = false;
+            }
         },
 
         // Formatting Utilities
