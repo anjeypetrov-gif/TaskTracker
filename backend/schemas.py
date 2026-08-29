@@ -8,9 +8,20 @@ class UserBase(BaseModel):
     full_name: str
     email: Optional[str] = None
     role: Optional[str] = "Разработчик"
+    role_description: Optional[str] = None
+    payment_details: Optional[str] = None
+    avatar_url: Optional[str] = None
 
 class UserCreate(UserBase):
     password: str
+
+class UserUpdate(BaseModel):
+    full_name: Optional[str] = None
+    email: Optional[str] = None
+    role: Optional[str] = None
+    role_description: Optional[str] = None
+    payment_details: Optional[str] = None
+    avatar_color: Optional[str] = None
 
 class UserResponse(UserBase):
     id: int

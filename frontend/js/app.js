@@ -35,7 +35,17 @@ document.addEventListener('alpine:init', () => {
         // Modals
         showDetailModal: false,
         showUserProfileModal: false,
+        showEditProfileModal: false,
+        savingProfile: false,
         selectedUserProfile: null,
+        editProfileForm: {
+            full_name: '',
+            email: '',
+            role: '',
+            role_description: '',
+            payment_details: '',
+            avatar_color: '#3b82f6'
+        },
         activeTask: {},
         activeComments: [],
         newCommentText: '',
@@ -845,6 +855,60 @@ document.addEventListener('alpine:init', () => {
                 bugs: bugs,
                 rate: assigned.length ? Math.round((completed / assigned.length) * 100) : 0
             };
+        },
+
+        openEditProfileModal() {
+            this.editProfileForm = {
+                full_name: this.currentUser.full_name || '',
+                email: this.currentUser.email || '',
+                role: this.currentUser.role || '',
+                role_description: this.currentUser.role_description || '',
+                payment_details: this.currentUser.payment_details || '',
+                avatar_color: this.currentUser.avatar_color || '#3b82f6'
+            };
+            this.showEditProfileModal = true;
+        },
+
+        async saveProfile() {
+            this.savingProfile = true;
+            try {
+                const updatedUser = await this.apiFetch('/api/users/me', {
+                    method: 'PUT',
+                    body: this.editProfileForm
+                });
+                this.currentUser = updatedUser;
+                localStorage.setItem('tt_user', JSON.stringify(updatedUser));
+                await this.fetchUsers();
+                this.showEditProfileModal = false;
+                if (this.selectedUserProfile && this.selectedUserProfile.id === updatedUser.id) {
+                    this.selectedUserProfile = updatedUser;
+                }
+            } catch (e) {
+                alert(e.message);
+            } finally {
+                this.savingProfile = false;
+            }
+        },
+
+        async uploadUserAvatar(event) {
+            const files = event.target.files;
+            if (!files || !files.length) return;
+            const formData = new FormData();
+            formData.append('file', files[0]);
+            try {
+                const updatedUser = await this.apiFetch('/api/users/me/avatar', {
+                    method: 'POST',
+                    body: formData
+                });
+                this.currentUser = updatedUser;
+                localStorage.setItem('tt_user', JSON.stringify(updatedUser));
+                await this.fetchUsers();
+                if (this.selectedUserProfile && this.selectedUserProfile.id === updatedUser.id) {
+                    this.selectedUserProfile = updatedUser;
+                }
+            } catch (e) {
+                alert(e.message);
+            }
         }
     }));
 });

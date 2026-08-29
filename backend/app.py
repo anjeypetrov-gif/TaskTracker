@@ -12,7 +12,7 @@ from datetime import datetime, timezone, timedelta
 from .database import engine, Base, get_db
 from .models import User, Task, Comment, Attachment, UserActivity
 from .schemas import (
-    UserCreate, UserResponse, LoginRequest, Token,
+    UserCreate, UserResponse, UserUpdate, LoginRequest, Token,
     TaskCreate, TaskUpdate, TaskResponse, TaskInviteRequest,
     CommentCreate, CommentResponse, UserStats, AttachmentResponse, UserActivityResponse
 )
@@ -98,6 +98,52 @@ def ping_online(current_user: User = Depends(get_current_user), db: Session = De
 
 @app.get("/api/auth/me", response_model=UserResponse)
 def get_me(current_user: User = Depends(get_current_user)):
+    current_user.is_online = True
+    return current_user
+
+@app.put("/api/users/me", response_model=UserResponse)
+def update_my_profile(
+    user_update: UserUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if user_update.full_name is not None:
+        current_user.full_name = user_update.full_name
+    if user_update.email is not None:
+        current_user.email = user_update.email
+    if user_update.role is not None:
+        current_user.role = user_update.role
+    if user_update.role_description is not None:
+        current_user.role_description = user_update.role_description
+    if user_update.payment_details is not None:
+        current_user.payment_details = user_update.payment_details
+    if user_update.avatar_color is not None:
+        current_user.avatar_color = user_update.avatar_color
+
+    db.commit()
+    db.refresh(current_user)
+    current_user.is_online = True
+    return current_user
+
+@app.post("/api/users/me/avatar", response_model=UserResponse)
+def upload_avatar(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    avatars_dir = os.path.join(UPLOADS_DIR, "avatars")
+    os.makedirs(avatars_dir, exist_ok=True)
+
+    ext = os.path.splitext(file.filename)[1] or ".png"
+    filename = f"avatar_{current_user.id}_{uuid.uuid4().hex[:8]}{ext}"
+    file_path = os.path.join(avatars_dir, filename)
+
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    current_user.avatar_url = f"/uploads/avatars/{filename}"
+    db.commit()
+    db.refresh(current_user)
     current_user.is_online = True
     return current_user
 
