@@ -253,7 +253,15 @@ function taskTrackerApp() {
             }
             if (!response.ok) {
                 const errData = await response.json().catch(() => ({}));
-                throw new Error(errData.detail || `Ошибка сервера: ${response.status}`);
+                let detailMsg = errData.detail;
+                if (detailMsg && typeof detailMsg === 'object') {
+                    if (Array.isArray(detailMsg)) {
+                        detailMsg = detailMsg.map(d => d.msg || d.detail || JSON.stringify(d)).join(', ');
+                    } else {
+                        detailMsg = JSON.stringify(detailMsg);
+                    }
+                }
+                throw new Error(detailMsg || `Ошибка сервера: ${response.status}`);
             }
             if (response.status === 204) return null;
             return await response.json();
@@ -905,7 +913,7 @@ function taskTrackerApp() {
             try {
                 const sub = await this.apiFetch(`/api/tasks/${this.activeTask.id}/subtasks`, {
                     method: 'POST',
-                    body: JSON.stringify({ title: this.newSubtaskTitle.trim() })
+                    body: { title: this.newSubtaskTitle.trim() }
                 });
                 if (!this.activeTask.subtasks) this.activeTask.subtasks = [];
                 this.activeTask.subtasks.push(sub);
@@ -915,11 +923,13 @@ function taskTrackerApp() {
 
         async toggleSubtask(subtask) {
             try {
-                subtask.is_completed = !subtask.is_completed;
-                await this.apiFetch(`/api/subtasks/${subtask.id}`, {
+                const res = await this.apiFetch(`/api/subtasks/${subtask.id}`, {
                     method: 'PATCH',
-                    body: JSON.stringify({ is_completed: subtask.is_completed })
+                    body: { is_completed: subtask.is_completed }
                 });
+                if (res) {
+                    subtask.is_completed = res.is_completed;
+                }
             } catch (e) {
                 subtask.is_completed = !subtask.is_completed;
                 alert(e.message);
