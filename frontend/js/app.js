@@ -36,6 +36,11 @@ function taskTrackerApp() {
         showDetailModal: false,
         showUserProfileModal: false,
         showEditProfileModal: false,
+        showAdminAddUserModal: false,
+        showAdminEditUserModal: false,
+        editingUserObj: null,
+        adminAddUserForm: { username: '', full_name: '', password: '', email: '', role: 'Разработчик', role_description: '', payment_details: '' },
+        adminEditUserForm: { username: '', full_name: '', password: '', email: '', role: '', role_description: '', payment_details: '', avatar_color: '#3b82f6' },
         savingProfile: false,
         selectedUserProfile: null,
         editProfileForm: {
@@ -78,6 +83,11 @@ function taskTrackerApp() {
 
         get isAuthenticated() {
             return !!this.token;
+        },
+
+        get isAdmin() {
+            if (!this.currentUser) return false;
+            return this.currentUser.role === 'Администратор' || this.currentUser.username === 'admin' || this.currentUser.username === 'anjey';
         },
 
         get myActiveTasks() {
@@ -919,6 +929,74 @@ function taskTrackerApp() {
                 if (this.selectedUserProfile && this.selectedUserProfile.id === updatedUser.id) {
                     this.selectedUserProfile = updatedUser;
                 }
+            } catch (e) {
+                alert(e.message);
+            }
+        },
+
+        openAdminAddUserModal() {
+            this.adminAddUserForm = { username: '', full_name: '', password: '', email: '', role: 'Разработчик', role_description: '', payment_details: '' };
+            this.showAdminAddUserModal = true;
+        },
+
+        async adminAddUser() {
+            try {
+                const newUser = await this.apiFetch('/api/admin/users', {
+                    method: 'POST',
+                    body: this.adminAddUserForm
+                });
+                await this.fetchUsers();
+                await this.fetchUserActivities();
+                this.showAdminAddUserModal = false;
+                alert(`Сотрудник ${newUser.full_name} (@${newUser.username}) успешно добавлен!`);
+            } catch (e) {
+                alert(e.message);
+            }
+        },
+
+        openAdminEditUserModal(user) {
+            this.editingUserObj = user;
+            this.adminEditUserForm = {
+                username: user.username || '',
+                full_name: user.full_name || '',
+                email: user.email || '',
+                password: '',
+                role: user.role || 'Разработчик',
+                role_description: user.role_description || '',
+                payment_details: user.payment_details || '',
+                avatar_color: user.avatar_color || '#3b82f6'
+            };
+            this.showAdminEditUserModal = true;
+        },
+
+        async adminUpdateUser() {
+            if (!this.editingUserObj) return;
+            try {
+                const updatedUser = await this.apiFetch(`/api/admin/users/${this.editingUserObj.id}`, {
+                    method: 'PUT',
+                    body: this.adminEditUserForm
+                });
+                await this.fetchUsers();
+                await this.fetchUserActivities();
+                if (this.currentUser.id === updatedUser.id) {
+                    this.currentUser = updatedUser;
+                    localStorage.setItem('tt_user', JSON.stringify(updatedUser));
+                }
+                this.showAdminEditUserModal = false;
+                alert(`Профиль сотрудника ${updatedUser.full_name} обновлен!`);
+            } catch (e) {
+                alert(e.message);
+            }
+        },
+
+        async adminDeleteUser(user) {
+            if (!confirm(`Вы действительно хотите удалить сотрудника ${user.full_name} (@${user.username})?`)) return;
+            try {
+                await this.apiFetch(`/api/admin/users/${user.id}`, { method: 'DELETE' });
+                await this.fetchUsers();
+                await this.fetchUserActivities();
+                await this.fetchTasks();
+                alert(`Сотрудник ${user.full_name} удален из системы.`);
             } catch (e) {
                 alert(e.message);
             }

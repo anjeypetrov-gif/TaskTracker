@@ -548,7 +548,85 @@
                                 </template>
                             </div>
                         </div>
-                    </div>
+                    <!-- Admin User Management Panel (Visible to Administrators) -->
+                    <template x-if="isAdmin">
+                        <div class="mt-6 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200/80 dark:border-slate-700 p-5 space-y-4">
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-3 gap-3">
+                                <div class="flex items-center space-x-3">
+                                    <div class="p-2.5 bg-brand-100 dark:bg-brand-950 text-brand-600 rounded-xl shrink-0">
+                                        <i data-lucide="shield-check" class="w-6 h-6"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-bold text-base text-slate-800 dark:text-white flex items-center space-x-2">
+                                            <span>Панель Администратора: Управление сотрудниками</span>
+                                            <span class="px-2.5 py-0.5 bg-brand-100 dark:bg-brand-950 text-brand-700 dark:text-brand-300 text-xs font-bold rounded-full" x-text="usersList.length + ' пользователей'"></span>
+                                        </h3>
+                                        <p class="text-xs text-slate-500">Добавление сотрудников, редактирование доступов, реквизитов, смена паролей и удаление</p>
+                                    </div>
+                                </div>
+                                <button @click="openAdminAddUserModal()" class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center space-x-1.5 shrink-0">
+                                    <i data-lucide="user-plus" class="w-4 h-4"></i>
+                                    <span>Добавить сотрудника</span>
+                                </button>
+                            </div>
+
+                            <!-- Users Grid Cards -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <template x-for="u in usersList" :key="u.id">
+                                    <div class="p-4 bg-slate-50/70 dark:bg-slate-700/40 rounded-2xl border border-slate-200/60 dark:border-slate-700 space-y-3 relative flex flex-col justify-between">
+                                        <div>
+                                            <!-- User Header -->
+                                            <div class="flex items-start justify-between">
+                                                <div class="flex items-center space-x-3 min-w-0">
+                                                    <div class="relative shrink-0">
+                                                        <template x-if="u.avatar_url">
+                                                            <img :src="u.avatar_url" class="w-10 h-10 rounded-xl object-cover border border-white shadow-xs">
+                                                        </template>
+                                                        <template x-if="!u.avatar_url">
+                                                            <div class="w-10 h-10 rounded-xl text-white font-bold text-sm flex items-center justify-center shadow-xs" :style="{ backgroundColor: u.avatar_color }">
+                                                                <span x-text="getInitials(u.full_name)"></span>
+                                                            </div>
+                                                        </template>
+                                                        <span class="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white dark:border-slate-800" :class="u.is_online ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'"></span>
+                                                    </div>
+                                                    <div class="min-w-0">
+                                                        <div class="font-bold text-sm text-slate-800 dark:text-white flex items-center space-x-1 truncate">
+                                                            <span class="truncate" x-text="u.full_name"></span>
+                                                            <template x-if="u.role === 'Администратор'">
+                                                                <i data-lucide="shield" class="w-3.5 h-3.5 text-brand-600 shrink-0" title="Администратор"></i>
+                                                            </template>
+                                                        </div>
+                                                        <div class="text-xs text-slate-500 font-mono" x-text="'@' + u.username"></div>
+                                                    </div>
+                                                </div>
+
+                                                <span class="px-2 py-0.5 text-[10px] font-bold rounded-md shrink-0 ml-1" :class="u.role === 'Администратор' ? 'bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300' : 'bg-slate-200 text-slate-700 dark:bg-slate-600 dark:text-slate-200'" x-text="u.role || 'Разработчик'"></span>
+                                            </div>
+
+                                            <!-- Meta Info -->
+                                            <div class="text-[11px] text-slate-500 space-y-1 mt-3">
+                                                <div class="truncate" x-text="'✉️ ' + (u.email || 'Email не указан')"></div>
+                                                <div class="truncate" x-text="u.role_description ? '📝 ' + u.role_description : 'Описание должности не указано'"></div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Admin Actions -->
+                                        <div class="flex items-center justify-between pt-2 border-t border-slate-200/60 dark:border-slate-600/60 text-xs">
+                                            <button @click="openAdminEditUserModal(u)" class="px-3 py-1.5 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 hover:bg-slate-100 text-slate-700 dark:text-slate-200 font-semibold rounded-xl transition flex items-center space-x-1">
+                                                <i data-lucide="edit-3" class="w-3.5 h-3.5 text-brand-600"></i>
+                                                <span>Редактировать</span>
+                                            </button>
+
+                                            <button x-show="u.id !== currentUser.id" @click="adminDeleteUser(u)" class="px-2.5 py-1.5 hover:bg-red-50 dark:hover:bg-red-950 text-red-600 dark:text-red-400 font-semibold rounded-xl transition flex items-center space-x-1">
+                                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                                <span>Удалить</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
                 </div>
 
                 <!-- ---------------- TAB 2: KANBAN BOARD ---------------- -->
@@ -2028,6 +2106,152 @@
                         <button type="button" @click="showEditProfileModal = false" class="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition">Отмена</button>
                         <button type="submit" :disabled="savingProfile" class="px-5 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl shadow-md transition flex items-center space-x-1.5">
                             <span x-text="savingProfile ? 'Сохранение...' : 'Сохранить изменения'"></span>
+                            <i data-lucide="check" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </template>
+
+    <!-- ---------------- ADMIN ADD USER MODAL ---------------- -->
+    <template x-if="showAdminAddUserModal">
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs custom-scrollbar overflow-y-auto" @click.self="showAdminAddUserModal = false">
+            <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-200/80 dark:border-slate-700 w-full max-w-xl p-6 animate-in fade-in zoom-in duration-200 space-y-5">
+                <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-3">
+                    <h3 class="font-bold text-lg text-slate-800 dark:text-white flex items-center space-x-2">
+                        <i data-lucide="user-plus" class="w-5 h-5 text-brand-600"></i>
+                        <span>Добавление нового сотрудника</span>
+                    </h3>
+                    <button @click="showAdminAddUserModal = false" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+
+                <form @submit.prevent="adminAddUser()" class="space-y-4 text-xs">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[11px] font-bold uppercase text-slate-500 mb-1">ФИО сотрудника *</label>
+                            <input type="text" x-model="adminAddUserForm.full_name" required placeholder="Например: Иван Иванов" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold uppercase text-slate-500 mb-1">Логин *</label>
+                            <input type="text" x-model="adminAddUserForm.username" required placeholder="ivanov" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[11px] font-bold uppercase text-slate-500 mb-1">Пароль *</label>
+                            <input type="password" x-model="adminAddUserForm.password" required placeholder="••••••••" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold uppercase text-slate-500 mb-1">Email</label>
+                            <input type="email" x-model="adminAddUserForm.email" placeholder="ivanov@company.ru" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-[11px] font-bold uppercase text-slate-500 mb-1">Должность / Название роли *</label>
+                        <select x-model="adminAddUserForm.role" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500">
+                            <option value="Разработчик">Разработчик</option>
+                            <option value="Senior Frontend Developer">Senior Frontend Developer</option>
+                            <option value="Lead Backend Developer">Lead Backend Developer</option>
+                            <option value="UI/UX Lead Designer">UI/UX Lead Designer</option>
+                            <option value="QA Lead / Тестировщик">QA Lead / Тестировщик</option>
+                            <option value="DevOps & Security Engineer">DevOps & Security Engineer</option>
+                            <option value="Project Manager / CPO">Project Manager / CPO</option>
+                            <option value="Администратор">Администратор</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-[11px] font-bold uppercase text-slate-500 mb-1">Описание обязанностей</label>
+                        <textarea x-model="adminAddUserForm.role_description" rows="2" placeholder="Зоны ответственности, стек проектов..." class="w-full p-3 bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500"></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-[11px] font-bold uppercase text-slate-500 mb-1">Реквизиты для выплат</label>
+                        <textarea x-model="adminAddUserForm.payment_details" rows="2" placeholder="ИП / Номер карты / Счет..." class="w-full p-3 bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500 font-mono text-xs"></textarea>
+                    </div>
+
+                    <div class="flex justify-end space-x-3 pt-3 border-t border-slate-100 dark:border-slate-700">
+                        <button type="button" @click="showAdminAddUserModal = false" class="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 rounded-xl transition">Отмена</button>
+                        <button type="submit" class="px-5 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl shadow-md transition flex items-center space-x-1.5">
+                            <span>Создать аккаунт</span>
+                            <i data-lucide="check" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </template>
+
+    <!-- ---------------- ADMIN EDIT USER MODAL ---------------- -->
+    <template x-if="showAdminEditUserModal">
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs custom-scrollbar overflow-y-auto" @click.self="showAdminEditUserModal = false">
+            <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-200/80 dark:border-slate-700 w-full max-w-xl p-6 animate-in fade-in zoom-in duration-200 space-y-5">
+                <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-3">
+                    <h3 class="font-bold text-lg text-slate-800 dark:text-white flex items-center space-x-2">
+                        <i data-lucide="user-check" class="w-5 h-5 text-brand-600"></i>
+                        <span>Редактирование сотрудника (Администратор)</span>
+                    </h3>
+                    <button @click="showAdminEditUserModal = false" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+
+                <form @submit.prevent="adminUpdateUser()" class="space-y-4 text-xs">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[11px] font-bold uppercase text-slate-500 mb-1">ФИО сотрудника *</label>
+                            <input type="text" x-model="adminEditUserForm.full_name" required class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold uppercase text-slate-500 mb-1">Логин *</label>
+                            <input type="text" x-model="adminEditUserForm.username" required class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[11px] font-bold uppercase text-slate-500 mb-1">Новый пароль (если хотите сбросить)</label>
+                            <input type="password" x-model="adminEditUserForm.password" placeholder="Оставьте пустым, если не меняется" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold uppercase text-slate-500 mb-1">Email</label>
+                            <input type="email" x-model="adminEditUserForm.email" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-[11px] font-bold uppercase text-slate-500 mb-1">Должность / Системная роль *</label>
+                        <select x-model="adminEditUserForm.role" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500">
+                            <option value="Разработчик">Разработчик</option>
+                            <option value="Senior Frontend Developer">Senior Frontend Developer</option>
+                            <option value="Lead Backend Developer">Lead Backend Developer</option>
+                            <option value="UI/UX Lead Designer">UI/UX Lead Designer</option>
+                            <option value="QA Lead / Тестировщик">QA Lead / Тестировщик</option>
+                            <option value="DevOps & Security Engineer">DevOps & Security Engineer</option>
+                            <option value="Project Manager / CPO">Project Manager / CPO</option>
+                            <option value="Администратор">Администратор</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-[11px] font-bold uppercase text-slate-500 mb-1">Описание обязанностей</label>
+                        <textarea x-model="adminEditUserForm.role_description" rows="2" class="w-full p-3 bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500"></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-[11px] font-bold uppercase text-slate-500 mb-1">Реквизиты для выплат</label>
+                        <textarea x-model="adminEditUserForm.payment_details" rows="2" class="w-full p-3 bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500 font-mono text-xs"></textarea>
+                    </div>
+
+                    <div class="flex justify-end space-x-3 pt-3 border-t border-slate-100 dark:border-slate-700">
+                        <button type="button" @click="showAdminEditUserModal = false" class="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 rounded-xl transition">Отмена</button>
+                        <button type="submit" class="px-5 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl shadow-md transition flex items-center space-x-1.5">
+                            <span>Сохранить изменения</span>
                             <i data-lucide="check" class="w-4 h-4"></i>
                         </button>
                     </div>

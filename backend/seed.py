@@ -19,13 +19,25 @@ def seed_db():
     curr_m = datetime.now().strftime("%Y-%m")
 
     # 1. Corporate Team Users
+    u_anjey = User(
+        username="anjey",
+        full_name="Анджей Петров",
+        email="anjey@company.ru",
+        hashed_password=hash_password("admin123"),
+        avatar_color="#2563eb",
+        role="Администратор",
+        role_description="Главный администратор системы TaskTracker & BugTracker.",
+        created_at=now - timedelta(days=35),
+        last_seen=now,
+        last_login=now
+    )
     u_admin = User(
         username="admin",
         full_name="Александр Громов",
         email="gromov@company.ru",
         hashed_password=hash_password("admin123"),
         avatar_color="#3b82f6",
-        role="Project Manager / CPO",
+        role="Администратор",
         created_at=now - timedelta(days=30),
         last_seen=now,
         last_login=now
@@ -86,9 +98,9 @@ def seed_db():
         last_login=now - timedelta(days=2)
     )
 
-    db.add_all([u_admin, u_alex, u_dmitry, u_maria, u_elena, u_sergey])
+    db.add_all([u_anjey, u_admin, u_alex, u_dmitry, u_maria, u_elena, u_sergey])
     db.commit()
-    for u in [u_admin, u_alex, u_dmitry, u_maria, u_elena, u_sergey]:
+    for u in [u_anjey, u_admin, u_alex, u_dmitry, u_maria, u_elena, u_sergey]:
         db.refresh(u)
 
     # 2. Add Login Activities Audit Log

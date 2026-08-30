@@ -226,6 +226,144 @@ def get_admin_activity(db: Session = Depends(get_db), current_user: User = Depen
             act.user.is_online = (now - last_seen_tz).total_seconds() < 300
     return activities
 
+# ----------------- Admin User Management Endpoints ----------------- #
+
+class AdminUserCreate(BaseModel):
+    username: str
+    full_name: str
+    password: str
+    email: Optional[str] = None
+    role: Optional[str] = "Разработчик"
+    role_description: Optional[str] = None
+    payment_details: Optional[str] = None
+
+class AdminUserUpdate(BaseModel):
+    full_name: Optional[str] = None
+    username: Optional[str] = None
+    email: Optional[str] = None
+    role: Optional[str] = None
+    role_description: Optional[str] = None
+    payment_details: Optional[str] = None
+    avatar_color: Optional[str] = None
+    password: Optional[str] = None
+
+@app.post("/api/admin/users", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+def admin_create_user(
+    user_data: AdminUserCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role != "Администратор" and current_user.username not in ["admin", "anjey"]:
+        raise HTTPException(status_code=403, detail="Доступ только для Администратора")
+
+    existing_user = db.query(User).filter(User.username == user_data.username).first()
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Пользователь с таким логином уже существует")
+
+    colors = ["#3b82f6", "#10b981", "#ec4899", "#8b5cf6", "#f59e0b", "#06b6d4", "#6366f1"]
+    avatar_color = colors[len(user_data.username) % len(colors)]
+    now = datetime.now(timezone.utc)
+
+    new_user = User(
+        username=user_data.username,
+        full_name=user_data.full_name,
+        email=user_data.email,
+        hashed_password=hash_password(user_data.password),
+        avatar_color=avatar_color,
+        role=user_data.role or "Разработчик",
+        role_description=user_data.role_description,
+        payment_details=user_data.payment_details,
+        created_at=now,
+        last_seen=now,
+        last_login=now
+    )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+
+    activity = UserActivity(user_id=current_user.id, action=f"Админ создал сотрудника {new_user.full_name} (@{new_user.username})", created_at=now)
+    db.add(activity)
+    db.commit()
+
+    return new_user
+
+@app.put("/api/admin/users/{user_id}", response_model=UserResponse)
+def admin_update_user(
+    user_id: int,
+    user_data: AdminUserUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role != "Администратор" and current_user.username not in ["admin", "anjey"]:
+        raise HTTPException(status_code=403, detail="Доступ только для Администратора")
+
+    target_user = db.query(User).filter(User.id == user_id).first()
+    if not target_user:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+
+    if user_data.full_name is not None:
+        target_user.full_name = user_data.full_name
+    if user_data.username is not None and user_data.username != target_user.username:
+        dup = db.query(User).filter(User.username == user_data.username).first()
+        if dup:
+            raise HTTPException(status_code=400, detail="Логин уже занят другим пользователем")
+        target_user.username = user_data.username
+    if user_data.email is not None:
+        target_user.email = user_data.email
+    if user_data.role is not None:
+        target_user.role = user_data.role
+    if user_data.role_description is not None:
+        target_user.role_description = user_data.role_description
+    if user_data.payment_details is not None:
+        target_user.payment_details = user_data.payment_details
+    if user_data.avatar_color is not None:
+        target_user.avatar_color = user_data.avatar_color
+    if user_data.password:
+        target_user.hashed_password = hash_password(user_data.password)
+
+    db.commit()
+    db.refresh(target_user)
+
+    now = datetime.now(timezone.utc)
+    activity = UserActivity(user_id=current_user.id, action=f"Админ обновил профиль {target_user.full_name}", created_at=now)
+    db.add(activity)
+    db.commit()
+
+    return target_user
+
+@app.delete("/api/admin/users/{user_id}")
+def admin_delete_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role != "Администратор" and current_user.username not in ["admin", "anjey"]:
+        raise HTTPException(status_code=403, detail="Доступ только для Администратора")
+
+    target_user = db.query(User).filter(User.id == user_id).first()
+    if not target_user:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+
+    if target_user.id == current_user.id:
+        raise HTTPException(status_code=400, detail="Нельзя удалить собственный аккаунт Администратора")
+
+    target_name = target_user.full_name
+
+    # Unassign tasks assigned to target_user to avoid FK crashes
+    assigned_tasks = db.query(Task).filter(Task.assignee_id == user_id).all()
+    for t in assigned_tasks:
+        t.assignee_id = None
+
+    db.delete(target_user)
+    db.commit()
+
+    now = datetime.now(timezone.utc)
+    activity = UserActivity(user_id=current_user.id, action=f"Админ удалил пользователя {target_name}", created_at=now)
+    db.add(activity)
+    db.commit()
+
+    return {"message": f"Пользователь {target_name} успешно удален"}
+
 # ----------------- Tasks Endpoints ----------------- #
 
 @app.get("/api/tasks", response_model=List[TaskResponse])
