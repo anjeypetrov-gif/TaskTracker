@@ -86,11 +86,11 @@ function taskTrackerApp() {
         },
 
         kanbanColumns: [
-            { status: 'todo', title: 'К выполнению', color: 'bg-slate-400' },
+            { status: 'todo', title: 'Новая', color: 'bg-slate-400' },
             { status: 'in_progress', title: 'В работе', color: 'bg-amber-500' },
             { status: 'in_review', title: 'На проверке', color: 'bg-blue-500' },
-            { status: 'on_hold', title: 'Отложенные', color: 'bg-purple-500' },
-            { status: 'done', title: 'Завершенные', color: 'bg-emerald-500' }
+            { status: 'done', title: 'Завершена', color: 'bg-emerald-500' },
+            { status: 'on_hold', title: 'Отложена', color: 'bg-purple-500' }
         ],
 
         get isAuthenticated() {
@@ -513,7 +513,7 @@ function taskTrackerApp() {
         },
 
         moveTaskNext(task) {
-            const flow = ['todo', 'in_progress', 'in_review', 'done'];
+            const flow = ['todo', 'in_progress', 'in_review', 'done', 'on_hold'];
             const currIdx = flow.indexOf(task.status);
             if (currIdx < flow.length - 1) {
                 this.changeTaskStatus(task.id, flow[currIdx + 1]);
@@ -521,7 +521,7 @@ function taskTrackerApp() {
         },
 
         moveTaskPrev(task) {
-            const flow = ['todo', 'in_progress', 'in_review', 'done'];
+            const flow = ['todo', 'in_progress', 'in_review', 'done', 'on_hold'];
             const currIdx = flow.indexOf(task.status);
             if (currIdx > 0) {
                 this.changeTaskStatus(task.id, flow[currIdx - 1]);
@@ -858,7 +858,7 @@ function taskTrackerApp() {
 
         getStatusLabel(status) {
             switch (status) {
-                case 'todo': return 'К выполнению';
+                case 'todo': return 'Новая';
                 case 'in_progress': return 'В работе';
                 case 'in_review': return 'На проверке';
                 case 'on_hold': return 'Отложена';
