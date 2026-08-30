@@ -25,7 +25,7 @@
         };
     </script>
     <!-- Application Logic -->
-    <script src="js/app.js?v=32"></script>
+    <script src="js/app.js?v=33"></script>
     <!-- Alpine.js -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <!-- Lucide Icons -->
@@ -2115,7 +2115,7 @@
     </template>
 
     <!-- ---------------- ADMIN ADD USER MODAL ---------------- -->
-    <div x-show="showAdminAddUserModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs custom-scrollbar overflow-y-auto" @click.self="showAdminAddUserModal = false">
+    <div x-show="showAdminAddUserModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs custom-scrollbar overflow-y-auto" @click.self="showAdminAddUserModal = false" style="display: none;">
         <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-200/80 dark:border-slate-700 w-full max-w-xl p-6 animate-in fade-in zoom-in duration-200 space-y-5">
             <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-3">
                 <h3 class="font-bold text-lg text-slate-800 dark:text-white flex items-center space-x-2">
@@ -2187,7 +2187,7 @@
     </div>
 
     <!-- ---------------- ADMIN EDIT USER MODAL ---------------- -->
-    <div x-show="showAdminEditUserModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs custom-scrollbar overflow-y-auto" @click.self="showAdminEditUserModal = false">
+    <div x-show="showAdminEditUserModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs custom-scrollbar overflow-y-auto" @click.self="showAdminEditUserModal = false" style="display: none;">
         <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-200/80 dark:border-slate-700 w-full max-w-xl p-6 animate-in fade-in zoom-in duration-200 space-y-5">
             <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-3">
                 <h3 class="font-bold text-lg text-slate-800 dark:text-white flex items-center space-x-2">
@@ -2258,6 +2258,6 @@
         </div>
     </div>
 
-    <script src="js/app.js?v=32"></script>
+    <script src="js/app.js?v=33"></script>
 </body>
 </html>
