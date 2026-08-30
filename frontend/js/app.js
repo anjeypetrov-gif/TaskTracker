@@ -25,7 +25,7 @@ function taskTrackerApp() {
 
         // Filters
         searchQuery: '',
-        filterMyOnly: false,
+        filterMyOnly: true,
         filterPriority: '',
         filterAssignee: '',
         filterBugSeverity: '',
