@@ -890,6 +890,7 @@ function taskTrackerApp() {
                 avatar_color: this.currentUser.avatar_color || '#3b82f6'
             };
             this.showEditProfileModal = true;
+            this.$nextTick(() => this.refreshIcons());
         },
 
         async saveProfile() {
@@ -956,6 +957,7 @@ function taskTrackerApp() {
         },
 
         openAdminEditUserModal(user) {
+            if (!user) return;
             this.editingUserObj = user;
             this.adminEditUserForm = {
                 username: user.username || '',
@@ -968,6 +970,7 @@ function taskTrackerApp() {
                 avatar_color: user.avatar_color || '#3b82f6'
             };
             this.showAdminEditUserModal = true;
+            this.$nextTick(() => this.refreshIcons());
         },
 
         async adminUpdateUser() {

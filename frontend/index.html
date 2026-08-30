@@ -25,7 +25,7 @@
         };
     </script>
     <!-- Application Logic -->
-    <script src="js/app.js?v=28"></script>
+    <script src="js/app.js?v=29"></script>
     <!-- Alpine.js -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <!-- Lucide Icons -->
@@ -2228,16 +2228,17 @@
 
                     <div>
                         <label class="block text-[11px] font-bold uppercase text-slate-500 mb-1">Должность / Системная роль *</label>
-                        <select x-model="adminEditUserForm.role" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500">
-                            <option value="Разработчик">Разработчик</option>
-                            <option value="Senior Frontend Developer">Senior Frontend Developer</option>
-                            <option value="Lead Backend Developer">Lead Backend Developer</option>
-                            <option value="UI/UX Lead Designer">UI/UX Lead Designer</option>
-                            <option value="QA Lead / Тестировщик">QA Lead / Тестировщик</option>
-                            <option value="DevOps & Security Engineer">DevOps & Security Engineer</option>
-                            <option value="Project Manager / CPO">Project Manager / CPO</option>
-                            <option value="Администратор">Администратор</option>
-                        </select>
+                        <input type="text" x-model="adminEditUserForm.role" list="roles-list" placeholder="Введите или выберите роль..." class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500">
+                        <datalist id="roles-list">
+                            <option value="Разработчик"></option>
+                            <option value="Senior Frontend Developer"></option>
+                            <option value="Lead Backend Developer"></option>
+                            <option value="UI/UX Lead Designer"></option>
+                            <option value="QA Lead / Тестировщик"></option>
+                            <option value="DevOps & Security Engineer"></option>
+                            <option value="Project Manager / CPO"></option>
+                            <option value="Администратор"></option>
+                        </datalist>
                     </div>
 
                     <div>
@@ -2262,6 +2263,6 @@
         </div>
     </template>
 
-    <script src="js/app.js?v=28"></script>
+    <script src="js/app.js?v=29"></script>
 </body>
 </html>
