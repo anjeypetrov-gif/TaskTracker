@@ -89,6 +89,7 @@ function taskTrackerApp() {
             { status: 'todo', title: 'К выполнению', color: 'bg-slate-400' },
             { status: 'in_progress', title: 'В работе', color: 'bg-amber-500' },
             { status: 'in_review', title: 'На проверке', color: 'bg-blue-500' },
+            { status: 'on_hold', title: 'Отложенные', color: 'bg-purple-500' },
             { status: 'done', title: 'Завершенные', color: 'bg-emerald-500' }
         ],
 
@@ -849,6 +850,7 @@ function taskTrackerApp() {
                 case 'todo': return 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300';
                 case 'in_progress': return 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300';
                 case 'in_review': return 'bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300';
+                case 'on_hold': return 'bg-purple-100 text-purple-800 dark:bg-purple-950/60 dark:text-purple-300';
                 case 'done': return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300';
                 default: return 'bg-slate-100 text-slate-700';
             }
@@ -856,11 +858,44 @@ function taskTrackerApp() {
 
         getStatusLabel(status) {
             switch (status) {
-                case 'todo': return 'В работе';
+                case 'todo': return 'К выполнению';
                 case 'in_progress': return 'В работе';
                 case 'in_review': return 'На проверке';
+                case 'on_hold': return 'Отложена';
                 case 'done': return 'Завершена';
                 default: return status;
+            }
+        },
+
+        async saveActiveTask() {
+            if (!this.activeTask || !this.activeTask.id) return;
+            try {
+                const updated = await this.apiFetch(`/api/tasks/${this.activeTask.id}`, {
+                    method: 'PATCH',
+                    body: {
+                        title: this.activeTask.title,
+                        description: this.activeTask.description,
+                        status: this.activeTask.status,
+                        priority: this.activeTask.priority,
+                        assignee_id: this.activeTask.assignee_id,
+                        due_date: this.activeTask.due_date,
+                        severity: this.activeTask.severity,
+                        steps_to_reproduce: this.activeTask.steps_to_reproduce
+                    }
+                });
+                this.activeTask = updated;
+                this.fetchTasks();
+                this.fetchUserStats();
+                this.showDetailModal = false;
+            } catch (e) { alert(e.message); }
+        },
+
+        async updateActiveTaskStatus(newStatus) {
+            if (!this.activeTask || !this.activeTask.id) return;
+            this.activeTask.status = newStatus;
+            await this.updateActiveTaskField('status', newStatus);
+            if (newStatus === 'on_hold') {
+                this.showDetailModal = false;
             }
         },
 

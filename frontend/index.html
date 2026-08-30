@@ -25,7 +25,7 @@
         };
     </script>
     <!-- Application Logic -->
-    <script src="js/app.js?v=45"></script>
+    <script src="js/app.js?v=46"></script>
     <!-- Alpine.js -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <!-- Lucide Icons -->
@@ -1693,10 +1693,11 @@
                             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-slate-50 dark:bg-slate-700/40 p-4 rounded-xl">
                                 <div>
                                     <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Статус</label>
-                                    <select x-model="activeTask.status" @change="updateActiveTaskField('status', activeTask.status)" class="w-full bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-xs py-1.5 px-2 outline-none">
-                                        <option value="todo">В работе</option>
+                                    <select x-model="activeTask.status" @change="updateActiveTaskField('status', activeTask.status)" class="w-full bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-xs py-1.5 px-2 outline-none font-semibold">
+                                        <option value="todo">К выполнению</option>
                                         <option value="in_progress">В работе</option>
                                         <option value="in_review">На проверке</option>
+                                        <option value="on_hold">Отложена</option>
                                         <option value="done">Завершена</option>
                                     </select>
                                 </div>
@@ -1938,8 +1939,39 @@
                                     <button type="submit" class="px-3.5 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center space-x-1 shrink-0">
                                         <i data-lucide="send" class="w-3.5 h-3.5"></i>
                                     </button>
-                                </form>
                             </div>
+                        </div>
+                    </div>
+
+                    <!-- Task Detail Bottom Action Footer Bar -->
+                    <div class="px-6 py-3 bg-slate-50 dark:bg-slate-800/90 border-t border-slate-200 dark:border-slate-700 flex flex-wrap items-center justify-between gap-3 shrink-0">
+                        <div class="flex items-center space-x-2 text-xs text-slate-500 font-medium">
+                            <i data-lucide="shield-check" class="w-4 h-4 text-brand-600"></i>
+                            <span>Действия с задачей:</span>
+                        </div>
+                        <div class="flex items-center space-x-2.5">
+                            <!-- 1. Сохранить -->
+                            <button type="button" @click="saveActiveTask()" class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold rounded-xl shadow-sm transition flex items-center space-x-1.5" title="Сохранить внесенные изменения">
+                                <i data-lucide="save" class="w-4 h-4"></i>
+                                <span>Сохранить</span>
+                            </button>
+
+                            <!-- 2. Отложить -->
+                            <button type="button" @click="updateActiveTaskStatus('on_hold')" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-xl shadow-sm transition flex items-center space-x-1.5" title="Перевести задачу в статус Отложена">
+                                <i data-lucide="pause-circle" class="w-4 h-4"></i>
+                                <span>Отложить</span>
+                            </button>
+
+                            <!-- 3. Завершить -->
+                            <button type="button" x-show="activeTask.status !== 'done'" @click="completeActiveTask()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-sm transition flex items-center space-x-1.5">
+                                <i data-lucide="check-circle" class="w-4 h-4"></i>
+                                <span>Завершить</span>
+                            </button>
+
+                            <span x-show="activeTask.status === 'done'" class="px-3.5 py-1.5 bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 rounded-xl text-xs font-bold flex items-center space-x-1 border border-emerald-200">
+                                <i data-lucide="check-check" class="w-4 h-4 text-emerald-600"></i>
+                                <span>Завершена</span>
+                            </span>
                         </div>
                     </div>
                 </div>
@@ -2044,9 +2076,10 @@
                                 <div>
                                     <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Статус</label>
                                     <select x-model="createTaskForm.status" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-sm outline-none">
-                                        <option value="todo">В работе</option>
+                                        <option value="todo">К выполнению</option>
                                         <option value="in_progress">В работе</option>
                                         <option value="in_review">На проверке</option>
+                                        <option value="on_hold">Отложена</option>
                                         <option value="done">Завершена</option>
                                     </select>
                                 </div>
@@ -2464,6 +2497,6 @@
         </div>
     </div>
 
-    <script src="js/app.js?v=45"></script>
+    <script src="js/app.js?v=46"></script>
 </body>
 </html>
