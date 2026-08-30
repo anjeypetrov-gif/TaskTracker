@@ -21,6 +21,7 @@ class UserUpdate(BaseModel):
     role_description: Optional[str] = None
     payment_details: Optional[str] = None
     avatar_color: Optional[str] = None
+    telegram_chat_id: Optional[str] = None
 
 class UserPublic(UserBase):
     """Safe-to-share user profile — this is what teammates see about each
@@ -41,6 +42,7 @@ class UserResponse(UserPublic):
     """Full profile including private fields — only ever returned for the
     authenticated user's own account (login/register/me/update-profile)."""
     payment_details: Optional[str] = None
+    telegram_chat_id: Optional[str] = None
 
 class UserActivityResponse(BaseModel):
     id: int
@@ -48,6 +50,37 @@ class UserActivityResponse(BaseModel):
     action: str
     created_at: datetime
     user: Optional[UserPublic] = None
+
+    class Config:
+        from_attributes = True
+
+# Notification Schema
+class NotificationResponse(BaseModel):
+    id: int
+    user_id: int
+    title: str
+    message: str
+    task_id: Optional[int] = None
+    is_read: bool
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+# Subtask Schemas
+class SubtaskCreate(BaseModel):
+    title: str
+
+class SubtaskUpdate(BaseModel):
+    title: Optional[str] = None
+    is_completed: Optional[bool] = None
+
+class SubtaskResponse(BaseModel):
+    id: int
+    task_id: int
+    title: str
+    is_completed: bool
+    created_at: datetime
 
     class Config:
         from_attributes = True
@@ -130,6 +163,7 @@ class TaskResponse(TaskBase):
     watchers: Optional[List[UserPublic]] = []
     comments_count: Optional[int] = 0
     attachments: Optional[List[AttachmentResponse]] = []
+    subtasks: Optional[List[SubtaskResponse]] = []
 
     class Config:
         from_attributes = True

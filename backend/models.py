@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Table
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Table, Boolean
 from sqlalchemy.orm import relationship
 from .database import Base
 
@@ -23,6 +23,7 @@ class User(Base):
     role_description = Column(Text, nullable=True)
     payment_details = Column(Text, nullable=True)
     avatar_url = Column(String, nullable=True)
+    telegram_chat_id = Column(String, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     last_seen = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     last_login = Column(DateTime, default=lambda: datetime.now(timezone.utc))
@@ -32,6 +33,7 @@ class User(Base):
     watched_tasks = relationship("Task", secondary=task_watchers, back_populates="watchers")
     comments = relationship("Comment", back_populates="author")
     activities = relationship("UserActivity", back_populates="user", cascade="all, delete-orphan")
+    notifications = relationship("Notification", back_populates="user", cascade="all, delete-orphan")
 
 class UserActivity(Base):
     __tablename__ = "user_activities"
@@ -66,6 +68,7 @@ class Task(Base):
     watchers = relationship("User", secondary=task_watchers, back_populates="watched_tasks")
     comments = relationship("Comment", back_populates="task", cascade="all, delete-orphan")
     attachments = relationship("Attachment", back_populates="task", cascade="all, delete-orphan")
+    subtasks = relationship("Subtask", back_populates="task", cascade="all, delete-orphan")
 
 class Comment(Base):
     __tablename__ = "comments"
@@ -91,3 +94,26 @@ class Attachment(Base):
 
     task = relationship("Task", back_populates="attachments")
 
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    title = Column(String, nullable=False)
+    message = Column(Text, nullable=False)
+    task_id = Column(Integer, ForeignKey("tasks.id"), nullable=True)
+    is_read = Column(Boolean, default=False, index=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    user = relationship("User", back_populates="notifications")
+
+class Subtask(Base):
+    __tablename__ = "subtasks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    task_id = Column(Integer, ForeignKey("tasks.id"), nullable=False, index=True)
+    title = Column(String, nullable=False)
+    is_completed = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    task = relationship("Task", back_populates="subtasks")

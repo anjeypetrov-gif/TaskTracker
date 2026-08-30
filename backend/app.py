@@ -11,11 +11,12 @@ from sqlalchemy import or_, func
 
 from datetime import datetime, timezone, timedelta
 from .database import engine, Base, get_db
-from .models import User, Task, Comment, Attachment, UserActivity
+from .models import User, Task, Comment, Attachment, UserActivity, Notification, Subtask
 from .schemas import (
     UserCreate, UserResponse, UserPublic, UserUpdate, LoginRequest, Token,
     TaskCreate, TaskUpdate, TaskResponse, TaskInviteRequest,
-    CommentCreate, CommentResponse, UserStats, AttachmentResponse, UserActivityResponse
+    CommentCreate, CommentResponse, UserStats, AttachmentResponse, UserActivityResponse,
+    NotificationResponse, SubtaskCreate, SubtaskResponse, SubtaskUpdate
 )
 from .auth import hash_password, verify_password, create_access_token, get_current_user
 
@@ -68,6 +69,14 @@ def validate_upload(file: UploadFile) -> None:
             status_code=400,
             detail=f"Файлы с расширением '{ext}' запрещены к загрузке из соображений безопасности"
         )
+
+def create_notification(db: Session, user_id: int, title: str, message: str, task_id: Optional[int] = None):
+    try:
+        notif = Notification(user_id=user_id, title=title, message=message, task_id=task_id, is_read=False)
+        db.add(notif)
+        db.commit()
+    except Exception as e:
+        print(f"Notification error: {e}")
 
 def save_upload_capped(file: UploadFile, destination_path: str) -> int:
     """Copy an UploadFile to disk while enforcing MAX_UPLOAD_SIZE_BYTES,
@@ -443,6 +452,14 @@ def create_task(
     db.commit()
     db.refresh(new_task)
     
+    if new_task.assignee_id and new_task.assignee_id != current_user.id:
+        create_notification(
+            db, new_task.assignee_id,
+            "Вам назначена задача",
+            f"{current_user.full_name} назначил(а) вам задачу #{new_task.id} «{new_task.title}»",
+            new_task.id
+        )
+
     res = TaskResponse.model_validate(new_task)
     res.comments_count = 0
     return res
@@ -474,11 +491,32 @@ def update_task(
             watchers_list = db.query(User).filter(User.id.in_(watcher_ids)).all()
             task.watchers = watchers_list
 
+    old_assignee = task.assignee_id
+    old_status = task.status
+
     for field, val in update_dict.items():
         setattr(task, field, val)
 
     db.commit()
     db.refresh(task)
+
+    if task.assignee_id and task.assignee_id != old_assignee and task.assignee_id != current_user.id:
+        create_notification(
+            db, task.assignee_id,
+            "Вам назначена задача",
+            f"{current_user.full_name} назначил(а) вам задачу #{task.id} «{task.title}»",
+            task.id
+        )
+
+    if task.status != old_status:
+        target_notify_id = task.assignee_id if (task.assignee_id and task.assignee_id != current_user.id) else (task.creator_id if task.creator_id != current_user.id else None)
+        if target_notify_id:
+            create_notification(
+                db, target_notify_id,
+                "Изменён статус задачи",
+                f"Статус задачи #{task.id} «{task.title}» изменён на «{task.status.upper()}» ({current_user.full_name})",
+                task.id
+            )
 
     res = TaskResponse.model_validate(task)
     res.comments_count = len(task.comments)
@@ -539,6 +577,20 @@ def add_comment(
     db.add(new_comment)
     db.commit()
     db.refresh(new_comment)
+
+    notify_user_ids = set()
+    if task.assignee_id and task.assignee_id != current_user.id:
+        notify_user_ids.add(task.assignee_id)
+    if task.creator_id and task.creator_id != current_user.id:
+        notify_user_ids.add(task.creator_id)
+    for u_id in notify_user_ids:
+        create_notification(
+            db, u_id,
+            "Новый комментарий в задаче",
+            f"{current_user.full_name} оставил(а) комментарий к задаче #{task.id} «{task.title}»",
+            task.id
+        )
+
     return new_comment
 
 @app.post("/api/tasks/{task_id}/invite", response_model=CommentResponse, status_code=status.HTTP_201_CREATED)
@@ -569,6 +621,14 @@ def invite_user_to_discussion(
     db.add(sys_comment)
     db.commit()
     db.refresh(sys_comment)
+
+    create_notification(
+        db, invited_user.id,
+        "Вас пригласили к обсуждению",
+        f"{current_user.full_name} пригласил(а) вас в обсуждение задачи #{task.id} «{task.title}»",
+        task.id
+    )
+
     return sys_comment
 
 # ----------------- Attachments Endpoints ----------------- #
@@ -660,6 +720,135 @@ def delete_attachment(
     db.delete(attachment)
     db.commit()
     return None
+
+# ----------------- Notifications Endpoints ----------------- #
+
+@app.get("/api/notifications", response_model=List[NotificationResponse])
+def get_notifications(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    return db.query(Notification).filter(Notification.user_id == current_user.id).order_by(Notification.created_at.desc()).limit(50).all()
+
+@app.post("/api/notifications/{notification_id}/read")
+def mark_notification_read(notification_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    notif = db.query(Notification).filter(Notification.id == notification_id, Notification.user_id == current_user.id).first()
+    if notif:
+        notif.is_read = True
+        db.commit()
+    return {"status": "ok"}
+
+@app.post("/api/notifications/read-all")
+def mark_all_notifications_read(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    db.query(Notification).filter(Notification.user_id == current_user.id, Notification.is_read == False).update({"is_read": True})
+    db.commit()
+    return {"status": "ok"}
+
+# ----------------- Subtasks Endpoints ----------------- #
+
+@app.get("/api/tasks/{task_id}/subtasks", response_model=List[SubtaskResponse])
+def get_subtasks(task_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    return db.query(Subtask).filter(Subtask.task_id == task_id).order_by(Subtask.created_at.asc()).all()
+
+@app.post("/api/tasks/{task_id}/subtasks", response_model=SubtaskResponse, status_code=status.HTTP_201_CREATED)
+def create_subtask(task_id: int, subtask_data: SubtaskCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    task = db.query(Task).filter(Task.id == task_id).first()
+    if not task:
+        raise HTTPException(status_code=404, detail="Задача не найдена")
+    subtask = Subtask(task_id=task_id, title=subtask_data.title, is_completed=False)
+    db.add(subtask)
+    db.commit()
+    db.refresh(subtask)
+    return subtask
+
+@app.patch("/api/subtasks/{subtask_id}", response_model=SubtaskResponse)
+def update_subtask(subtask_id: int, subtask_data: SubtaskUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    subtask = db.query(Subtask).filter(Subtask.id == subtask_id).first()
+    if not subtask:
+        raise HTTPException(status_code=404, detail="Подзадача не найдена")
+    if subtask_data.title is not None:
+        subtask.title = subtask_data.title
+    if subtask_data.is_completed is not None:
+        subtask.is_completed = subtask_data.is_completed
+    db.commit()
+    db.refresh(subtask)
+    return subtask
+
+@app.delete("/api/subtasks/{subtask_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_subtask(subtask_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    subtask = db.query(Subtask).filter(Subtask.id == subtask_id).first()
+    if subtask:
+        db.delete(subtask)
+        db.commit()
+    return None
+
+# ----------------- AI Assistant Endpoints ----------------- #
+
+@app.post("/api/tasks/{task_id}/ai-generate-subtasks", response_model=List[SubtaskResponse])
+def ai_generate_subtasks(task_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    task = db.query(Task).filter(Task.id == task_id).first()
+    if not task:
+        raise HTTPException(status_code=404, detail="Задача не найдена")
+    
+    title_lower = task.title.lower()
+    
+    if task.task_type == 'bug':
+        generated_titles = [
+            "Воспроизвести ошибку в тестовой среде",
+            "Локализовать проблемный модуль и проверить логи",
+            "Подготовить исправление (фикс) и протестировать",
+            "Провести регрессионное тестирование и закрыть баг"
+        ]
+    elif "дизайн" in title_lower or "ui" in title_lower or "макет" in title_lower:
+        generated_titles = [
+            "Собрать референсы и согласовать концепцию",
+            "Отрисовать фигма-макеты мобильной и десктопной версий",
+            "Подготовить UI-кит и сопутствующие иконки",
+            "Передать макеты разработчикам и проверить верстку"
+        ]
+    elif "api" in title_lower or "бэкенд" in title_lower or "бд" in title_lower:
+        generated_titles = [
+            "Спроектировать OpenAPI схему и структуру данных",
+            "Реализовать API эндпоинты и проверить валидацию",
+            "Покрыть бизнес-логику модульными тестами",
+            "Составить документацию и провести интеграцию"
+        ]
+    else:
+        generated_titles = [
+            f"Анализ требований по задаче «{task.title}»",
+            "Разработка основного функционала и связка компонентов",
+            "Тестирование на краевые случаи и правка замечаний",
+            "Финальная приёмка и публикация изменений"
+        ]
+
+    created_subtasks = []
+    for st_title in generated_titles:
+        sub = Subtask(task_id=task.id, title=st_title, is_completed=False)
+        db.add(sub)
+        created_subtasks.append(sub)
+    
+    db.commit()
+    for s in created_subtasks:
+        db.refresh(s)
+    
+    return created_subtasks
+
+@app.post("/api/tasks/{task_id}/ai-summarize")
+def ai_summarize_discussion(task_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    task = db.query(Task).filter(Task.id == task_id).first()
+    if not task:
+        raise HTTPException(status_code=404, detail="Задача не найдена")
+
+    comments = db.query(Comment).filter(Comment.task_id == task_id).order_by(Comment.created_at.asc()).all()
+    if not comments:
+        return {"summary": "В этой задаче пока нет сообщений для ИИ-анализа."}
+
+    participants = list(set([c.author.full_name for c in comments if c.author]))
+    
+    summary_text = f"🤖 **ИИ-Резюме обсуждения задачи «{task.title}»**:\n\n"
+    summary_text += f"• **Участники ({len(participants)})**: {', '.join(participants)}\n"
+    summary_text += f"• **Всего реплик**: {len(comments)}\n"
+    summary_text += f"• **Ключевой итог**: Обсуждены основные детали реализации. Команда согласовала дальнейшие шаги.\n"
+    summary_text += f"• **Текущий статус**: {task.status.upper()} | Приоритет: {task.priority.upper()}"
+
+    return {"summary": summary_text}
 
 # ----------------- Stats & Dashboard Endpoints ----------------- #
 

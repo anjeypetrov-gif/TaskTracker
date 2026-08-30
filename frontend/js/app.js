@@ -33,6 +33,15 @@ function taskTrackerApp() {
         bugViewMode: 'list', // 'list' | 'cards'
 
         userMenuOpen: false,
+        notificationMenuOpen: false,
+        notifications: [],
+
+        // Subtasks & AI & Media Preview
+        newSubtaskTitle: '',
+        isGeneratingSubtasks: false,
+        isSummarizing: false,
+        aiSummaryResult: '',
+        activeMediaPreview: null,
 
         // Modals
         showDetailModal: false,
@@ -313,7 +322,8 @@ function taskTrackerApp() {
                 this.fetchTasks(),
                 this.fetchUserStats(),
                 this.fetchFullStats(),
-                this.fetchUserActivities()
+                this.fetchUserActivities(),
+                this.fetchNotifications()
             ]);
             this.startHeartbeat();
             this.refreshIcons();
@@ -326,6 +336,7 @@ function taskTrackerApp() {
                     this.apiFetch('/api/auth/ping', { method: 'POST' }).catch(() => {});
                     this.fetchUsers();
                     this.fetchUserActivities();
+                    this.fetchNotifications();
                 }
             }, 20000);
         },
@@ -847,6 +858,7 @@ function taskTrackerApp() {
 
         closeAllModals() {
             this.userMenuOpen = false;
+            this.notificationMenuOpen = false;
             this.showDetailModal = false;
             this.showUserProfileModal = false;
             this.showEditProfileModal = false;
@@ -854,6 +866,100 @@ function taskTrackerApp() {
             this.showAdminEditUserModal = false;
             this.showCreateModal = false;
             this.showReopenModal = false;
+            this.aiSummaryResult = '';
+            this.activeMediaPreview = null;
+        },
+
+        async fetchNotifications() {
+            try {
+                this.notifications = await this.apiFetch('/api/notifications');
+            } catch (e) { console.error(e); }
+        },
+
+        async markNotificationRead(id, taskId = null) {
+            try {
+                await this.apiFetch(`/api/notifications/${id}/read`, { method: 'POST' });
+                const n = this.notifications.find(item => item.id === id);
+                if (n) n.is_read = true;
+                if (taskId) {
+                    this.notificationMenuOpen = false;
+                    this.openTaskDetail(taskId);
+                }
+            } catch (e) { console.error(e); }
+        },
+
+        async markAllNotificationsRead() {
+            try {
+                await this.apiFetch('/api/notifications/read-all', { method: 'POST' });
+                (this.notifications || []).forEach(n => n.is_read = true);
+            } catch (e) { console.error(e); }
+        },
+
+        get unreadNotificationsCount() {
+            return (this.notifications || []).filter(n => !n.is_read).length;
+        },
+
+        // Subtask Methods
+        async addSubtask() {
+            if (!this.newSubtaskTitle.trim() || !this.activeTask.id) return;
+            try {
+                const sub = await this.apiFetch(`/api/tasks/${this.activeTask.id}/subtasks`, {
+                    method: 'POST',
+                    body: JSON.stringify({ title: this.newSubtaskTitle.trim() })
+                });
+                if (!this.activeTask.subtasks) this.activeTask.subtasks = [];
+                this.activeTask.subtasks.push(sub);
+                this.newSubtaskTitle = '';
+            } catch (e) { alert(e.message); }
+        },
+
+        async toggleSubtask(subtask) {
+            try {
+                subtask.is_completed = !subtask.is_completed;
+                await this.apiFetch(`/api/subtasks/${subtask.id}`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ is_completed: subtask.is_completed })
+                });
+            } catch (e) {
+                subtask.is_completed = !subtask.is_completed;
+                alert(e.message);
+            }
+        },
+
+        async deleteSubtask(subtaskId) {
+            try {
+                await this.apiFetch(`/api/subtasks/${subtaskId}`, { method: 'DELETE' });
+                this.activeTask.subtasks = (this.activeTask.subtasks || []).filter(s => s.id !== subtaskId);
+            } catch (e) { alert(e.message); }
+        },
+
+        // AI Assistant Methods
+        async aiGenerateSubtasks() {
+            if (!this.activeTask.id) return;
+            this.isGeneratingSubtasks = true;
+            try {
+                const newSubtasks = await this.apiFetch(`/api/tasks/${this.activeTask.id}/ai-generate-subtasks`, { method: 'POST' });
+                this.activeTask.subtasks = newSubtasks;
+            } catch (e) { alert(e.message); }
+            finally { this.isGeneratingSubtasks = false; }
+        },
+
+        async aiSummarizeDiscussion() {
+            if (!this.activeTask.id) return;
+            this.isSummarizing = true;
+            try {
+                const res = await this.apiFetch(`/api/tasks/${this.activeTask.id}/ai-summarize`, { method: 'POST' });
+                this.aiSummaryResult = res.summary;
+            } catch (e) { alert(e.message); }
+            finally { this.isSummarizing = false; }
+        },
+
+        openMediaPreview(filePath, filename) {
+            this.activeMediaPreview = { url: filePath, filename: filename };
+        },
+
+        closeMediaPreview() {
+            this.activeMediaPreview = null;
         },
 
         openUserProfile(userId) {
