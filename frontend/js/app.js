@@ -937,8 +937,10 @@ function taskTrackerApp() {
         },
 
         openAdminAddUserModal() {
+            console.log("openAdminAddUserModal called");
             this.adminAddUserForm = { username: '', full_name: '', password: '', email: '', role: 'Разработчик', role_description: '', payment_details: '' };
             this.showAdminAddUserModal = true;
+            this.$nextTick(() => this.refreshIcons());
         },
 
         async adminAddUser() {

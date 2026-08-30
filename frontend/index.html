@@ -25,7 +25,7 @@
         };
     </script>
     <!-- Application Logic -->
-    <script src="js/app.js?v=31"></script>
+    <script src="js/app.js?v=32"></script>
     <!-- Alpine.js -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <!-- Lucide Icons -->
@@ -565,7 +565,7 @@
                                     <p class="text-xs text-slate-500">Добавление сотрудников, редактирование доступов, реквизитов, смена паролей и удаление</p>
                                 </div>
                             </div>
-                            <button @click="openAdminAddUserModal()" class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center space-x-1.5 shrink-0">
+                            <button type="button" @click="openAdminAddUserModal()" class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center space-x-1.5 shrink-0">
                                 <i data-lucide="user-plus" class="w-4 h-4"></i>
                                 <span>Добавить сотрудника</span>
                             </button>
@@ -2115,77 +2115,76 @@
     </template>
 
     <!-- ---------------- ADMIN ADD USER MODAL ---------------- -->
-    <template x-if="showAdminAddUserModal">
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs custom-scrollbar overflow-y-auto" @click.self="showAdminAddUserModal = false">
-            <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-200/80 dark:border-slate-700 w-full max-w-xl p-6 animate-in fade-in zoom-in duration-200 space-y-5">
-                <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-3">
-                    <h3 class="font-bold text-lg text-slate-800 dark:text-white flex items-center space-x-2">
-                        <i data-lucide="user-plus" class="w-5 h-5 text-brand-600"></i>
-                        <span>Добавление нового сотрудника</span>
-                    </h3>
-                    <button @click="showAdminAddUserModal = false" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
-                        <i data-lucide="x" class="w-5 h-5"></i>
-                    </button>
+    <div x-show="showAdminAddUserModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs custom-scrollbar overflow-y-auto" @click.self="showAdminAddUserModal = false">
+        <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-200/80 dark:border-slate-700 w-full max-w-xl p-6 animate-in fade-in zoom-in duration-200 space-y-5">
+            <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-3">
+                <h3 class="font-bold text-lg text-slate-800 dark:text-white flex items-center space-x-2">
+                    <i data-lucide="user-plus" class="w-5 h-5 text-brand-600"></i>
+                    <span>Добавление нового сотрудника</span>
+                </h3>
+                <button type="button" @click="showAdminAddUserModal = false" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <form @submit.prevent="adminAddUser()" class="space-y-4 text-xs">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-bold uppercase text-slate-500 mb-1">ФИО сотрудника *</label>
+                        <input type="text" x-model="adminAddUserForm.full_name" required placeholder="Например: Иван Иванов" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold uppercase text-slate-500 mb-1">Логин *</label>
+                        <input type="text" x-model="adminAddUserForm.username" required placeholder="ivanov" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500">
+                    </div>
                 </div>
 
-                <form @submit.prevent="adminAddUser()" class="space-y-4 text-xs">
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div>
-                            <label class="block text-[11px] font-bold uppercase text-slate-500 mb-1">ФИО сотрудника *</label>
-                            <input type="text" x-model="adminAddUserForm.full_name" required placeholder="Например: Иван Иванов" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500">
-                        </div>
-                        <div>
-                            <label class="block text-[11px] font-bold uppercase text-slate-500 mb-1">Логин *</label>
-                            <input type="text" x-model="adminAddUserForm.username" required placeholder="ivanov" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500">
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div>
-                            <label class="block text-[11px] font-bold uppercase text-slate-500 mb-1">Пароль *</label>
-                            <input type="password" x-model="adminAddUserForm.password" required placeholder="••••••••" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500">
-                        </div>
-                        <div>
-                            <label class="block text-[11px] font-bold uppercase text-slate-500 mb-1">Email</label>
-                            <input type="email" x-model="adminAddUserForm.email" placeholder="ivanov@company.ru" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500">
-                        </div>
-                    </div>
-
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-[11px] font-bold uppercase text-slate-500 mb-1">Должность / Название роли *</label>
-                        <select x-model="adminAddUserForm.role" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500">
-                            <option value="Разработчик">Разработчик</option>
-                            <option value="Senior Frontend Developer">Senior Frontend Developer</option>
-                            <option value="Lead Backend Developer">Lead Backend Developer</option>
-                            <option value="UI/UX Lead Designer">UI/UX Lead Designer</option>
-                            <option value="QA Lead / Тестировщик">QA Lead / Тестировщик</option>
-                            <option value="DevOps & Security Engineer">DevOps & Security Engineer</option>
-                            <option value="Project Manager / CPO">Project Manager / CPO</option>
-                            <option value="Администратор">Администратор</option>
-                        </select>
+                        <label class="block text-[11px] font-bold uppercase text-slate-500 mb-1">Пароль *</label>
+                        <input type="password" x-model="adminAddUserForm.password" required placeholder="••••••••" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500">
                     </div>
-
                     <div>
-                        <label class="block text-[11px] font-bold uppercase text-slate-500 mb-1">Описание обязанностей</label>
-                        <textarea x-model="adminAddUserForm.role_description" rows="2" placeholder="Зоны ответственности, стек проектов..." class="w-full p-3 bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500"></textarea>
+                        <label class="block text-[11px] font-bold uppercase text-slate-500 mb-1">Email</label>
+                        <input type="email" x-model="adminAddUserForm.email" placeholder="ivanov@company.ru" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500">
                     </div>
+                </div>
 
-                    <div>
-                        <label class="block text-[11px] font-bold uppercase text-slate-500 mb-1">Реквизиты для выплат</label>
-                        <textarea x-model="adminAddUserForm.payment_details" rows="2" placeholder="ИП / Номер карты / Счет..." class="w-full p-3 bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500 font-mono text-xs"></textarea>
-                    </div>
+                <div>
+                    <label class="block text-[11px] font-bold uppercase text-slate-500 mb-1">Должность / Название роли *</label>
+                    <input type="text" x-model="adminAddUserForm.role" list="roles-list-add" placeholder="Введите или выберите роль..." class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500">
+                    <datalist id="roles-list-add">
+                        <option value="Разработчик"></option>
+                        <option value="Senior Frontend Developer"></option>
+                        <option value="Lead Backend Developer"></option>
+                        <option value="UI/UX Lead Designer"></option>
+                        <option value="QA Lead / Тестировщик"></option>
+                        <option value="DevOps & Security Engineer"></option>
+                        <option value="Project Manager / CPO"></option>
+                        <option value="Администратор"></option>
+                    </datalist>
+                </div>
 
-                    <div class="flex justify-end space-x-3 pt-3 border-t border-slate-100 dark:border-slate-700">
-                        <button type="button" @click="showAdminAddUserModal = false" class="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 rounded-xl transition">Отмена</button>
-                        <button type="submit" class="px-5 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl shadow-md transition flex items-center space-x-1.5">
-                            <span>Создать аккаунт</span>
-                            <i data-lucide="check" class="w-4 h-4"></i>
-                        </button>
-                    </div>
-                </form>
-            </div>
+                <div>
+                    <label class="block text-[11px] font-bold uppercase text-slate-500 mb-1">Описание обязанностей</label>
+                    <textarea x-model="adminAddUserForm.role_description" rows="2" placeholder="Зоны ответственности, стек проектов..." class="w-full p-3 bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500"></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-bold uppercase text-slate-500 mb-1">Реквизиты для выплат</label>
+                    <textarea x-model="adminAddUserForm.payment_details" rows="2" placeholder="ИП / Номер карты / Счет..." class="w-full p-3 bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500 font-mono text-xs"></textarea>
+                </div>
+
+                <div class="flex justify-end space-x-3 pt-3 border-t border-slate-100 dark:border-slate-700">
+                    <button type="button" @click="showAdminAddUserModal = false" class="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 rounded-xl transition">Отмена</button>
+                    <button type="submit" class="px-5 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl shadow-md transition flex items-center space-x-1.5">
+                        <span>Создать аккаунт</span>
+                        <i data-lucide="check" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </form>
         </div>
-    </template>
+    </div>
 
     <!-- ---------------- ADMIN EDIT USER MODAL ---------------- -->
     <div x-show="showAdminEditUserModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs custom-scrollbar overflow-y-auto" @click.self="showAdminEditUserModal = false">
@@ -2259,6 +2258,6 @@
         </div>
     </div>
 
-    <script src="js/app.js?v=31"></script>
+    <script src="js/app.js?v=32"></script>
 </body>
 </html>
