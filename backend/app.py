@@ -23,6 +23,15 @@ from .auth import hash_password, verify_password, create_access_token, get_curre
 # Create database tables
 Base.metadata.create_all(bind=engine)
 
+# Auto-migrate SQLite schema columns if missing
+with engine.connect() as conn:
+    from sqlalchemy import text
+    try:
+        conn.execute(text("ALTER TABLE users ADD COLUMN telegram_chat_id VARCHAR"))
+        conn.commit()
+    except Exception:
+        pass
+
 # Create uploads directory if not exists
 UPLOADS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "uploads")
 os.makedirs(UPLOADS_DIR, exist_ok=True)
@@ -431,13 +440,17 @@ def create_task(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    assignee_id = task_data.assignee_id
+    if isinstance(assignee_id, str):
+        assignee_id = int(assignee_id) if (assignee_id and assignee_id.isdigit()) else None
+
     new_task = Task(
         title=task_data.title,
         description=task_data.description,
         status=task_data.status or "todo",
         priority=task_data.priority or "medium",
         creator_id=current_user.id,
-        assignee_id=task_data.assignee_id,
+        assignee_id=assignee_id,
         due_date=task_data.due_date,
         tags=task_data.tags or "",
         task_type=task_data.task_type or "task",
@@ -460,7 +473,8 @@ def create_task(
             new_task.id
         )
 
-    res = TaskResponse.model_validate(new_task)
+    task_obj = db.query(Task).filter(Task.id == new_task.id).first()
+    res = TaskResponse.model_validate(task_obj)
     res.comments_count = 0
     return res
 
@@ -518,8 +532,9 @@ def update_task(
                 task.id
             )
 
-    res = TaskResponse.model_validate(task)
-    res.comments_count = len(task.comments)
+    task_obj = db.query(Task).filter(Task.id == task.id).first()
+    res = TaskResponse.model_validate(task_obj)
+    res.comments_count = len(task_obj.comments)
     return res
 
 @app.post("/api/tasks/{task_id}/watchers/toggle", response_model=TaskResponse)
