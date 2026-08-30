@@ -25,7 +25,7 @@
         };
     </script>
     <!-- Application Logic -->
-    <script src="js/app.js?v=38"></script>
+    <script src="js/app.js?v=39"></script>
     <!-- Alpine.js -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <!-- Lucide Icons -->
@@ -317,8 +317,15 @@
                     <!-- Profile Banner -->
                     <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-slate-200/80 dark:border-slate-700 mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
                         <div class="flex items-center space-x-5">
-                            <div class="w-16 h-16 rounded-2xl text-white font-bold text-2xl flex items-center justify-center shadow-md shrink-0" :style="{ backgroundColor: currentUser.avatar_color }">
-                                <span x-text="getInitials(currentUser.full_name)"></span>
+                            <div class="relative shrink-0">
+                                <template x-if="currentUser.avatar_url">
+                                    <img :src="currentUser.avatar_url" class="w-16 h-16 rounded-2xl object-cover border-2 border-white shadow-md">
+                                </template>
+                                <template x-if="!currentUser.avatar_url">
+                                    <div class="w-16 h-16 rounded-2xl text-white font-bold text-2xl flex items-center justify-center shadow-md shrink-0" :style="{ backgroundColor: currentUser.avatar_color }">
+                                        <span x-text="getInitials(currentUser.full_name)"></span>
+                                    </div>
+                                </template>
                             </div>
                             <div>
                                 <h1 class="text-2xl font-bold" x-text="currentUser.full_name"></h1>
@@ -490,9 +497,14 @@
                                     <div @click="openUserProfile(u.id)" class="flex items-center justify-between p-2.5 rounded-xl border border-slate-100 dark:border-slate-700/80 bg-slate-50/50 dark:bg-slate-700/30 text-xs cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition">
                                         <div class="flex items-center space-x-2.5 min-w-0">
                                             <div class="relative shrink-0">
-                                                <div class="w-8 h-8 rounded-full text-white font-bold text-xs flex items-center justify-center shadow-xs" :style="{ backgroundColor: u.avatar_color }">
-                                                    <span x-text="getInitials(u.full_name)"></span>
-                                                </div>
+                                                <template x-if="u.avatar_url">
+                                                    <img :src="u.avatar_url" class="w-8 h-8 rounded-full object-cover border border-white shadow-xs">
+                                                </template>
+                                                <template x-if="!u.avatar_url">
+                                                    <div class="w-8 h-8 rounded-full text-white font-bold text-xs flex items-center justify-center shadow-xs" :style="{ backgroundColor: u.avatar_color }">
+                                                        <span x-text="getInitials(u.full_name)"></span>
+                                                    </div>
+                                                </template>
                                                 <span class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white dark:border-slate-800" :class="u.is_online ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'"></span>
                                             </div>
                                             <div class="truncate">
@@ -528,8 +540,15 @@
                                 <template x-for="act in userActivities" :key="act.id">
                                     <div @click="openUserProfile(act.user ? act.user.id : null)" class="flex items-center justify-between p-2.5 bg-slate-50/70 dark:bg-slate-700/40 rounded-xl border border-slate-100 dark:border-slate-700 text-xs cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition">
                                         <div class="flex items-center space-x-2.5 truncate">
-                                            <div class="w-7 h-7 rounded-full text-white font-bold text-[10px] flex items-center justify-center shrink-0" :style="{ backgroundColor: act.user ? act.user.avatar_color : '#3b82f6' }">
-                                                <span x-text="getInitials(act.user ? act.user.full_name : 'U')"></span>
+                                            <div class="relative shrink-0">
+                                                <template x-if="act.user && act.user.avatar_url">
+                                                    <img :src="act.user.avatar_url" class="w-7 h-7 rounded-full object-cover border border-white shadow-xs">
+                                                </template>
+                                                <template x-if="!act.user || !act.user.avatar_url">
+                                                    <div class="w-7 h-7 rounded-full text-white font-bold text-[10px] flex items-center justify-center shrink-0" :style="{ backgroundColor: act.user ? act.user.avatar_color : '#3b82f6' }">
+                                                        <span x-text="getInitials(act.user ? act.user.full_name : 'U')"></span>
+                                                    </div>
+                                                </template>
                                             </div>
                                             <div class="truncate">
                                                 <div class="flex items-center space-x-1.5">
@@ -744,8 +763,15 @@
                                                     </span>
                                                     <!-- Assignee Avatar -->
                                                     <template x-if="task.assignee">
-                                                        <div class="w-6 h-6 rounded-full text-white font-bold text-[10px] flex items-center justify-center shadow-xs" :style="{ backgroundColor: task.assignee.avatar_color }" :title="'Исполнитель: ' + task.assignee.full_name">
-                                                            <span x-text="getInitials(task.assignee.full_name)"></span>
+                                                        <div class="relative shrink-0" :title="'Исполнитель: ' + task.assignee.full_name">
+                                                            <template x-if="task.assignee.avatar_url">
+                                                                <img :src="task.assignee.avatar_url" class="w-6 h-6 rounded-full object-cover border border-white shadow-xs">
+                                                            </template>
+                                                            <template x-if="!task.assignee.avatar_url">
+                                                                <div class="w-6 h-6 rounded-full text-white font-bold text-[10px] flex items-center justify-center shadow-xs" :style="{ backgroundColor: task.assignee.avatar_color }">
+                                                                    <span x-text="getInitials(task.assignee.full_name)"></span>
+                                                                </div>
+                                                            </template>
                                                         </div>
                                                     </template>
                                                 </div>
@@ -808,8 +834,15 @@
                                             <td class="py-3 px-2">
                                                 <template x-if="task.creator">
                                                     <div class="flex items-center space-x-1.5">
-                                                        <div class="w-5 h-5 rounded-full text-white font-bold text-[9px] flex items-center justify-center shrink-0" :style="{ backgroundColor: task.creator.avatar_color }">
-                                                            <span x-text="getInitials(task.creator.full_name)"></span>
+                                                        <div class="relative shrink-0">
+                                                            <template x-if="task.creator.avatar_url">
+                                                                <img :src="task.creator.avatar_url" class="w-5 h-5 rounded-full object-cover border border-white shadow-xs">
+                                                            </template>
+                                                            <template x-if="!task.creator.avatar_url">
+                                                                <div class="w-5 h-5 rounded-full text-white font-bold text-[9px] flex items-center justify-center shrink-0" :style="{ backgroundColor: task.creator.avatar_color }">
+                                                                    <span x-text="getInitials(task.creator.full_name)"></span>
+                                                                </div>
+                                                            </template>
                                                         </div>
                                                         <span class="text-xs truncate max-w-[100px]" x-text="task.creator.full_name"></span>
                                                     </div>
@@ -820,8 +853,15 @@
                                             <td class="py-3 px-2">
                                                 <template x-if="task.assignee">
                                                     <div class="flex items-center space-x-1.5">
-                                                        <div class="w-5 h-5 rounded-full text-white font-bold text-[9px] flex items-center justify-center shrink-0" :style="{ backgroundColor: task.assignee.avatar_color }">
-                                                            <span x-text="getInitials(task.assignee.full_name)"></span>
+                                                        <div class="relative shrink-0">
+                                                            <template x-if="task.assignee.avatar_url">
+                                                                <img :src="task.assignee.avatar_url" class="w-5 h-5 rounded-full object-cover border border-white shadow-xs">
+                                                            </template>
+                                                            <template x-if="!task.assignee.avatar_url">
+                                                                <div class="w-5 h-5 rounded-full text-white font-bold text-[9px] flex items-center justify-center shrink-0" :style="{ backgroundColor: task.assignee.avatar_color }">
+                                                                    <span x-text="getInitials(task.assignee.full_name)"></span>
+                                                                </div>
+                                                            </template>
                                                         </div>
                                                         <span class="text-xs truncate max-w-[100px]" x-text="task.assignee.full_name"></span>
                                                     </div>
@@ -951,8 +991,15 @@
                                             <td class="py-3.5 px-3 whitespace-nowrap">
                                                 <template x-if="bug.creator">
                                                     <div class="flex items-center space-x-1.5">
-                                                        <div class="w-5 h-5 rounded-full text-white font-bold text-[9px] flex items-center justify-center shrink-0" :style="{ backgroundColor: bug.creator.avatar_color }">
-                                                            <span x-text="getInitials(bug.creator.full_name)"></span>
+                                                        <div class="relative shrink-0">
+                                                            <template x-if="bug.creator.avatar_url">
+                                                                <img :src="bug.creator.avatar_url" class="w-5 h-5 rounded-full object-cover border border-white shadow-xs">
+                                                            </template>
+                                                            <template x-if="!bug.creator.avatar_url">
+                                                                <div class="w-5 h-5 rounded-full text-white font-bold text-[9px] flex items-center justify-center shrink-0" :style="{ backgroundColor: bug.creator.avatar_color }">
+                                                                    <span x-text="getInitials(bug.creator.full_name)"></span>
+                                                                </div>
+                                                            </template>
                                                         </div>
                                                         <span class="text-xs truncate max-w-[100px]" x-text="bug.creator.full_name"></span>
                                                     </div>
@@ -963,8 +1010,15 @@
                                             <td class="py-3.5 px-3 whitespace-nowrap">
                                                 <template x-if="bug.assignee">
                                                     <div class="flex items-center space-x-1.5">
-                                                        <div class="w-5 h-5 rounded-full text-white font-bold text-[9px] flex items-center justify-center shrink-0" :style="{ backgroundColor: bug.assignee.avatar_color }">
-                                                            <span x-text="getInitials(bug.assignee.full_name)"></span>
+                                                        <div class="relative shrink-0">
+                                                            <template x-if="bug.assignee.avatar_url">
+                                                                <img :src="bug.assignee.avatar_url" class="w-5 h-5 rounded-full object-cover border border-white shadow-xs">
+                                                            </template>
+                                                            <template x-if="!bug.assignee.avatar_url">
+                                                                <div class="w-5 h-5 rounded-full text-white font-bold text-[9px] flex items-center justify-center shrink-0" :style="{ backgroundColor: bug.assignee.avatar_color }">
+                                                                    <span x-text="getInitials(bug.assignee.full_name)"></span>
+                                                                </div>
+                                                            </template>
                                                         </div>
                                                         <span class="text-xs truncate max-w-[100px]" x-text="bug.assignee.full_name"></span>
                                                     </div>
@@ -1045,8 +1099,15 @@
                                     <div class="flex items-center space-x-2">
                                         <template x-if="bug.assignee">
                                             <div class="flex items-center space-x-1.5">
-                                                <div class="w-5 h-5 rounded-full text-white font-bold text-[9px] flex items-center justify-center shrink-0" :style="{ backgroundColor: bug.assignee.avatar_color }">
-                                                    <span x-text="getInitials(bug.assignee.full_name)"></span>
+                                                <div class="relative shrink-0">
+                                                    <template x-if="bug.assignee.avatar_url">
+                                                        <img :src="bug.assignee.avatar_url" class="w-5 h-5 rounded-full object-cover border border-white shadow-xs">
+                                                    </template>
+                                                    <template x-if="!bug.assignee.avatar_url">
+                                                        <div class="w-5 h-5 rounded-full text-white font-bold text-[9px] flex items-center justify-center shrink-0" :style="{ backgroundColor: bug.assignee.avatar_color }">
+                                                            <span x-text="getInitials(bug.assignee.full_name)"></span>
+                                                        </div>
+                                                    </template>
                                                 </div>
                                                 <span class="truncate max-w-[100px]" x-text="bug.assignee.full_name"></span>
                                             </div>
@@ -1310,8 +1371,15 @@
                                             <!-- User info -->
                                             <td class="py-4 px-3">
                                                 <div class="flex items-center space-x-3">
-                                                    <div class="w-8 h-8 rounded-full text-white font-bold text-xs flex items-center justify-center shrink-0" :style="{ backgroundColor: user.avatar_color }">
-                                                        <span x-text="getInitials(user.full_name)"></span>
+                                                    <div class="relative shrink-0">
+                                                        <template x-if="user.avatar_url">
+                                                            <img :src="user.avatar_url" class="w-8 h-8 rounded-full object-cover border border-white shadow-xs">
+                                                        </template>
+                                                        <template x-if="!user.avatar_url">
+                                                            <div class="w-8 h-8 rounded-full text-white font-bold text-xs flex items-center justify-center shrink-0" :style="{ backgroundColor: user.avatar_color }">
+                                                                <span x-text="getInitials(user.full_name)"></span>
+                                                            </div>
+                                                        </template>
                                                     </div>
                                                     <div>
                                                         <div class="font-semibold text-slate-900 dark:text-white text-sm" x-text="user.full_name"></div>
@@ -1504,8 +1572,15 @@
                                         </div>
                                         <template x-if="activeTask.creator">
                                             <div @click.stop="openUserProfile(activeTask.creator.id)" class="flex items-center space-x-2 mt-1 cursor-pointer hover:opacity-80 transition" title="Открыть профиль пользователя">
-                                                <div class="w-6 h-6 rounded-full text-white font-bold text-[10px] flex items-center justify-center shrink-0" :style="{ backgroundColor: activeTask.creator.avatar_color }">
-                                                    <span x-text="getInitials(activeTask.creator.full_name)"></span>
+                                                <div class="relative shrink-0">
+                                                    <template x-if="activeTask.creator.avatar_url">
+                                                        <img :src="activeTask.creator.avatar_url" class="w-6 h-6 rounded-full object-cover border border-white shadow-xs">
+                                                    </template>
+                                                    <template x-if="!activeTask.creator.avatar_url">
+                                                        <div class="w-6 h-6 rounded-full text-white font-bold text-[10px] flex items-center justify-center shrink-0" :style="{ backgroundColor: activeTask.creator.avatar_color }">
+                                                            <span x-text="getInitials(activeTask.creator.full_name)"></span>
+                                                        </div>
+                                                    </template>
                                                 </div>
                                                 <div class="truncate">
                                                     <div class="font-semibold text-slate-800 dark:text-slate-100 truncate text-xs hover:text-brand-600 transition" x-text="activeTask.creator.full_name"></div>
@@ -1681,8 +1756,15 @@
                                 <template x-for="comm in activeComments" :key="comm.id">
                                     <div class="flex items-start space-x-2.5 p-2.5 rounded-xl text-xs transition" 
                                         :class="comm.content.startsWith('📢') ? 'bg-indigo-50/90 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800' : (comm.content.startsWith('⏪') ? 'bg-amber-50/90 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800' : (comm.content.startsWith('📎') ? 'bg-blue-50/90 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800' : 'bg-white dark:bg-slate-800 shadow-2xs border border-slate-200/80 dark:border-slate-700'))">
-                                        <div @click.stop="openUserProfile(comm.author ? comm.author.id : null)" class="w-7 h-7 rounded-full text-white font-bold text-[10px] flex items-center justify-center shrink-0 mt-0.5 shadow-2xs cursor-pointer hover:opacity-80 transition" :style="{ backgroundColor: comm.author ? comm.author.avatar_color : '#3b82f6' }" title="Открыть профиль">
-                                            <span x-text="getInitials(comm.author ? comm.author.full_name : 'U')"></span>
+                                        <div @click.stop="openUserProfile(comm.author ? comm.author.id : null)" class="relative shrink-0 mt-0.5 cursor-pointer hover:opacity-80 transition" title="Открыть профиль">
+                                            <template x-if="comm.author && comm.author.avatar_url">
+                                                <img :src="comm.author.avatar_url" class="w-7 h-7 rounded-full object-cover border border-white shadow-xs">
+                                            </template>
+                                            <template x-if="!comm.author || !comm.author.avatar_url">
+                                                <div class="w-7 h-7 rounded-full text-white font-bold text-[10px] flex items-center justify-center shrink-0 shadow-2xs" :style="{ backgroundColor: comm.author ? comm.author.avatar_color : '#3b82f6' }">
+                                                    <span x-text="getInitials(comm.author ? comm.author.full_name : 'U')"></span>
+                                                </div>
+                                            </template>
                                         </div>
                                         <div class="flex-1 min-w-0">
                                             <div class="flex items-center justify-between text-[11px] mb-0.5">
