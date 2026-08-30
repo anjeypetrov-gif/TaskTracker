@@ -25,7 +25,7 @@
         };
     </script>
     <!-- Application Logic -->
-    <script src="js/app.js?v=43"></script>
+    <script src="js/app.js?v=44"></script>
     <!-- Alpine.js -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <!-- Lucide Icons -->
@@ -882,7 +882,6 @@
                                         <th class="pb-3 px-2">Исполнитель</th>
                                         <th class="pb-3 px-2">Наблюдатели</th>
                                         <th class="pb-3 px-2">Срок</th>
-                                        <th class="pb-3 px-2 text-right">Действие</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
@@ -947,11 +946,6 @@
                                             </td>
 
                                             <td class="py-3 px-2 text-xs text-slate-500" x-text="task.due_date || '—'"></td>
-                                            <td class="py-3 px-2 text-right">
-                                                <button @click="openTaskDetail(task.id)" class="p-1.5 text-slate-400 hover:text-brand-600 rounded">
-                                                    <i data-lucide="edit-3" class="w-4 h-4"></i>
-                                                </button>
-                                            </td>
                                         </tr>
                                     </template>
                                 </tbody>
@@ -2470,6 +2464,6 @@
         </div>
     </div>
 
-    <script src="js/app.js?v=43"></script>
+    <script src="js/app.js?v=44"></script>
 </body>
 </html>
