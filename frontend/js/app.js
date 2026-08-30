@@ -32,6 +32,8 @@ function taskTrackerApp() {
         filterBugStatus: '',
         bugViewMode: 'list', // 'list' | 'cards'
 
+        userMenuOpen: false,
+
         // Modals
         showDetailModal: false,
         showUserProfileModal: false,
@@ -837,6 +839,7 @@ function taskTrackerApp() {
         },
 
         closeAllModals() {
+            this.userMenuOpen = false;
             this.showDetailModal = false;
             this.showUserProfileModal = false;
             this.showEditProfileModal = false;
