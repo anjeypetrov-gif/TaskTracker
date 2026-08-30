@@ -719,6 +719,7 @@ def get_full_stats(db: Session = Depends(get_db), current_user: User = Depends(g
             "full_name": u.full_name,
             "role": u.role,
             "avatar_color": u.avatar_color,
+            "avatar_url": u.avatar_url,
             "assigned_tasks": len(u_tasks),
             "completed_tasks": u_tasks_done,
             "assigned_bugs": len(u_bugs),

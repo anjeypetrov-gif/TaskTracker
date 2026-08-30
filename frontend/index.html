@@ -25,7 +25,7 @@
         };
     </script>
     <!-- Application Logic -->
-    <script src="js/app.js?v=41"></script>
+    <script src="js/app.js?v=42"></script>
     <!-- Alpine.js -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <!-- Lucide Icons -->
@@ -790,7 +790,7 @@
                                                     <template x-if="task.assignee">
                                                         <div class="relative shrink-0" :title="'Исполнитель: ' + task.assignee.full_name">
                                                             <template x-if="task.assignee.avatar_url">
-                                                                <img :src="task.assignee.avatar_url" class="w-6 h-6 rounded-full object-cover border border-white shadow-xs">
+                                                                <img :src="task.assignee.avatar_url" @error="task.assignee.avatar_url = null" class="w-6 h-6 rounded-full object-cover border border-white shadow-xs">
                                                             </template>
                                                             <template x-if="!task.assignee.avatar_url">
                                                                 <div class="w-6 h-6 rounded-full text-white font-bold text-[10px] flex items-center justify-center shadow-xs" :style="{ backgroundColor: task.assignee.avatar_color }">
@@ -861,7 +861,7 @@
                                                     <div class="flex items-center space-x-1.5">
                                                         <div class="relative shrink-0">
                                                             <template x-if="task.creator.avatar_url">
-                                                                <img :src="task.creator.avatar_url" class="w-5 h-5 rounded-full object-cover border border-white shadow-xs">
+                                                                <img :src="task.creator.avatar_url" @error="task.creator.avatar_url = null" class="w-5 h-5 rounded-full object-cover border border-white shadow-xs">
                                                             </template>
                                                             <template x-if="!task.creator.avatar_url">
                                                                 <div class="w-5 h-5 rounded-full text-white font-bold text-[9px] flex items-center justify-center shrink-0" :style="{ backgroundColor: task.creator.avatar_color }">
@@ -880,7 +880,7 @@
                                                     <div class="flex items-center space-x-1.5">
                                                         <div class="relative shrink-0">
                                                             <template x-if="task.assignee.avatar_url">
-                                                                <img :src="task.assignee.avatar_url" class="w-5 h-5 rounded-full object-cover border border-white shadow-xs">
+                                                                <img :src="task.assignee.avatar_url" @error="task.assignee.avatar_url = null" class="w-5 h-5 rounded-full object-cover border border-white shadow-xs">
                                                             </template>
                                                             <template x-if="!task.assignee.avatar_url">
                                                                 <div class="w-5 h-5 rounded-full text-white font-bold text-[9px] flex items-center justify-center shrink-0" :style="{ backgroundColor: task.assignee.avatar_color }">
@@ -1018,7 +1018,7 @@
                                                     <div class="flex items-center space-x-1.5">
                                                         <div class="relative shrink-0">
                                                             <template x-if="bug.creator.avatar_url">
-                                                                <img :src="bug.creator.avatar_url" class="w-5 h-5 rounded-full object-cover border border-white shadow-xs">
+                                                                <img :src="bug.creator.avatar_url" @error="bug.creator.avatar_url = null" class="w-5 h-5 rounded-full object-cover border border-white shadow-xs">
                                                             </template>
                                                             <template x-if="!bug.creator.avatar_url">
                                                                 <div class="w-5 h-5 rounded-full text-white font-bold text-[9px] flex items-center justify-center shrink-0" :style="{ backgroundColor: bug.creator.avatar_color }">
@@ -1037,7 +1037,7 @@
                                                     <div class="flex items-center space-x-1.5">
                                                         <div class="relative shrink-0">
                                                             <template x-if="bug.assignee.avatar_url">
-                                                                <img :src="bug.assignee.avatar_url" class="w-5 h-5 rounded-full object-cover border border-white shadow-xs">
+                                                                <img :src="bug.assignee.avatar_url" @error="bug.assignee.avatar_url = null" class="w-5 h-5 rounded-full object-cover border border-white shadow-xs">
                                                             </template>
                                                             <template x-if="!bug.assignee.avatar_url">
                                                                 <div class="w-5 h-5 rounded-full text-white font-bold text-[9px] flex items-center justify-center shrink-0" :style="{ backgroundColor: bug.assignee.avatar_color }">
@@ -1126,7 +1126,7 @@
                                             <div class="flex items-center space-x-1.5">
                                                 <div class="relative shrink-0">
                                                     <template x-if="bug.assignee.avatar_url">
-                                                        <img :src="bug.assignee.avatar_url" class="w-5 h-5 rounded-full object-cover border border-white shadow-xs">
+                                                        <img :src="bug.assignee.avatar_url" @error="bug.assignee.avatar_url = null" class="w-5 h-5 rounded-full object-cover border border-white shadow-xs">
                                                     </template>
                                                     <template x-if="!bug.assignee.avatar_url">
                                                         <div class="w-5 h-5 rounded-full text-white font-bold text-[9px] flex items-center justify-center shrink-0" :style="{ backgroundColor: bug.assignee.avatar_color }">
@@ -1398,7 +1398,7 @@
                                                 <div class="flex items-center space-x-3">
                                                     <div class="relative shrink-0">
                                                         <template x-if="user.avatar_url">
-                                                            <img :src="user.avatar_url" class="w-8 h-8 rounded-full object-cover border border-white shadow-xs">
+                                                            <img :src="user.avatar_url" @error="user.avatar_url = null" class="w-8 h-8 rounded-full object-cover border border-white shadow-xs">
                                                         </template>
                                                         <template x-if="!user.avatar_url">
                                                             <div class="w-8 h-8 rounded-full text-white font-bold text-xs flex items-center justify-center shrink-0" :style="{ backgroundColor: user.avatar_color }">
@@ -1599,7 +1599,7 @@
                                             <div @click.stop="openUserProfile(activeTask.creator.id)" class="flex items-center space-x-2 mt-1 cursor-pointer hover:opacity-80 transition" title="Открыть профиль пользователя">
                                                 <div class="relative shrink-0">
                                                     <template x-if="activeTask.creator.avatar_url">
-                                                        <img :src="activeTask.creator.avatar_url" class="w-6 h-6 rounded-full object-cover border border-white shadow-xs">
+                                                        <img :src="activeTask.creator.avatar_url" @error="activeTask.creator.avatar_url = null" class="w-6 h-6 rounded-full object-cover border border-white shadow-xs">
                                                     </template>
                                                     <template x-if="!activeTask.creator.avatar_url">
                                                         <div class="w-6 h-6 rounded-full text-white font-bold text-[10px] flex items-center justify-center shrink-0" :style="{ backgroundColor: activeTask.creator.avatar_color }">
@@ -1783,7 +1783,7 @@
                                         :class="comm.content.startsWith('📢') ? 'bg-indigo-50/90 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800' : (comm.content.startsWith('⏪') ? 'bg-amber-50/90 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800' : (comm.content.startsWith('📎') ? 'bg-blue-50/90 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800' : 'bg-white dark:bg-slate-800 shadow-2xs border border-slate-200/80 dark:border-slate-700'))">
                                         <div @click.stop="openUserProfile(comm.author ? comm.author.id : null)" class="relative shrink-0 mt-0.5 cursor-pointer hover:opacity-80 transition" title="Открыть профиль">
                                             <template x-if="comm.author && comm.author.avatar_url">
-                                                <img :src="comm.author.avatar_url" class="w-7 h-7 rounded-full object-cover border border-white shadow-xs">
+                                                <img :src="comm.author.avatar_url" @error="comm.author.avatar_url = null" class="w-7 h-7 rounded-full object-cover border border-white shadow-xs">
                                             </template>
                                             <template x-if="!comm.author || !comm.author.avatar_url">
                                                 <div class="w-7 h-7 rounded-full text-white font-bold text-[10px] flex items-center justify-center shrink-0 shadow-2xs" :style="{ backgroundColor: comm.author ? comm.author.avatar_color : '#3b82f6' }">
@@ -2148,7 +2148,7 @@
                 <div class="flex items-center space-x-4 bg-slate-50 dark:bg-slate-700/50 p-4 rounded-2xl border border-slate-200/60 dark:border-slate-700">
                     <div class="relative shrink-0">
                         <template x-if="currentUser.avatar_url">
-                            <img :src="currentUser.avatar_url" class="w-16 h-16 rounded-2xl object-cover border-2 border-white shadow-md">
+                            <img :src="currentUser.avatar_url" @error="currentUser.avatar_url = null" class="w-16 h-16 rounded-2xl object-cover border-2 border-white shadow-md">
                         </template>
                         <template x-if="!currentUser.avatar_url">
                             <div class="w-16 h-16 rounded-2xl text-white font-extrabold text-xl flex items-center justify-center shadow-md" :style="{ backgroundColor: editProfileForm.avatar_color }">
@@ -2343,6 +2343,6 @@
         </div>
     </div>
 
-    <script src="js/app.js?v=41"></script>
+    <script src="js/app.js?v=42"></script>
 </body>
 </html>

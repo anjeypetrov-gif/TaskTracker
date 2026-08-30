@@ -333,6 +333,13 @@ function taskTrackerApp() {
         async fetchUsers() {
             try {
                 this.usersList = await this.apiFetch('/api/users');
+                if (this.currentUser && this.currentUser.id) {
+                    const freshMe = this.usersList.find(u => u.id === this.currentUser.id);
+                    if (freshMe && freshMe.avatar_url !== undefined) {
+                        this.currentUser.avatar_url = freshMe.avatar_url;
+                        localStorage.setItem('tt_user', JSON.stringify(this.currentUser));
+                    }
+                }
             } catch (e) { console.error(e); }
         },
 
