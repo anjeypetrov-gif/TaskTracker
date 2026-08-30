@@ -953,6 +953,7 @@ function taskTrackerApp() {
                 if (!this.activeTask.subtasks) this.activeTask.subtasks = [];
                 this.activeTask.subtasks.push(sub);
                 this.newSubtaskTitle = '';
+                this.fetchTasks();
             } catch (e) { alert(e.message); }
         },
 
@@ -965,6 +966,7 @@ function taskTrackerApp() {
                 if (res) {
                     subtask.is_completed = res.is_completed;
                 }
+                this.fetchTasks();
             } catch (e) {
                 subtask.is_completed = !subtask.is_completed;
                 alert(e.message);
@@ -975,6 +977,7 @@ function taskTrackerApp() {
             try {
                 await this.apiFetch(`/api/subtasks/${subtaskId}`, { method: 'DELETE' });
                 this.activeTask.subtasks = (this.activeTask.subtasks || []).filter(s => s.id !== subtaskId);
+                this.fetchTasks();
             } catch (e) { alert(e.message); }
         },
 

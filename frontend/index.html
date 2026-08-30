@@ -25,7 +25,7 @@
         };
     </script>
     <!-- Application Logic -->
-    <script src="js/app.js?v=46"></script>
+    <script src="js/app.js?v=47"></script>
     <!-- Alpine.js -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <!-- Lucide Icons -->
@@ -1821,7 +1821,7 @@
                                     <template x-for="st in activeTask.subtasks" :key="st.id">
                                         <div class="flex items-center justify-between p-2 bg-white dark:bg-slate-800 rounded-xl border border-slate-200/80 dark:border-slate-700 text-xs transition hover:border-emerald-300">
                                             <label class="flex items-center space-x-2.5 cursor-pointer flex-1 min-w-0">
-                                                <input type="checkbox" :checked="st.is_completed" @change="toggleSubtask(st)" class="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500 border-slate-300">
+                                                <input type="checkbox" x-model="st.is_completed" @change="toggleSubtask(st)" class="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500 border-slate-300">
                                                 <span :class="{ 'line-through text-slate-400 dark:text-slate-500 font-normal': st.is_completed, 'font-medium text-slate-800 dark:text-slate-100': !st.is_completed }" x-text="st.title" class="truncate"></span>
                                             </label>
                                             <button type="button" @click="deleteSubtask(st.id)" class="text-slate-400 hover:text-red-500 p-1 transition shrink-0 ml-2">
@@ -2497,6 +2497,6 @@
         </div>
     </div>
 
-    <script src="js/app.js?v=46"></script>
+    <script src="js/app.js?v=47"></script>
 </body>
 </html>
