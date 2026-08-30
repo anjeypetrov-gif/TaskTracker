@@ -1,5 +1,6 @@
 import os
 import uuid
+import base64
 from typing import List, Optional
 from pydantic import BaseModel
 from fastapi import FastAPI, Depends, HTTPException, status, Query, UploadFile, File
@@ -188,16 +189,23 @@ def upload_avatar(
     current_user: User = Depends(get_current_user)
 ):
     validate_upload(file)
+    contents = file.file.read()
+    b64_str = base64.b64encode(contents).decode('utf-8')
+    mime_type = file.content_type or "image/png"
+
+    # Also save to disk locally
     avatars_dir = os.path.join(UPLOADS_DIR, "avatars")
     os.makedirs(avatars_dir, exist_ok=True)
-
     ext = os.path.splitext(file.filename)[1] or ".png"
     filename = f"avatar_{current_user.id}_{uuid.uuid4().hex[:8]}{ext}"
     file_path = os.path.join(avatars_dir, filename)
+    try:
+        with open(file_path, "wb") as f:
+            f.write(contents)
+    except Exception:
+        pass
 
-    save_upload_capped(file, file_path)
-
-    current_user.avatar_url = f"/uploads/avatars/{filename}"
+    current_user.avatar_url = f"data:{mime_type};base64,{b64_str}"
     db.commit()
     db.refresh(current_user)
     current_user.is_online = True

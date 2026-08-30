@@ -25,7 +25,7 @@
         };
     </script>
     <!-- Application Logic -->
-    <script src="js/app.js?v=39"></script>
+    <script src="js/app.js?v=40"></script>
     <!-- Alpine.js -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <!-- Lucide Icons -->
@@ -249,7 +249,7 @@
                             <button type="button" @click.stop="userMenuOpen = !userMenuOpen" class="flex items-center space-x-2 focus:outline-none p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700">
                                 <div class="relative shrink-0">
                                     <template x-if="currentUser.avatar_url">
-                                        <img :src="currentUser.avatar_url" class="w-7 h-7 rounded-full object-cover border border-white shadow-xs">
+                                        <img :src="currentUser.avatar_url" @error="currentUser.avatar_url = null" class="w-7 h-7 rounded-full object-cover border border-white shadow-xs">
                                     </template>
                                     <template x-if="!currentUser.avatar_url">
                                         <div class="w-7 h-7 rounded-full text-white font-semibold text-xs flex items-center justify-center shadow-xs" :style="{ backgroundColor: currentUser.avatar_color }">
@@ -319,7 +319,7 @@
                         <div class="flex items-center space-x-5">
                             <div class="relative shrink-0">
                                 <template x-if="currentUser.avatar_url">
-                                    <img :src="currentUser.avatar_url" class="w-16 h-16 rounded-2xl object-cover border-2 border-white shadow-md">
+                                    <img :src="currentUser.avatar_url" @error="currentUser.avatar_url = null" class="w-16 h-16 rounded-2xl object-cover border-2 border-white shadow-md">
                                 </template>
                                 <template x-if="!currentUser.avatar_url">
                                     <div class="w-16 h-16 rounded-2xl text-white font-bold text-2xl flex items-center justify-center shadow-md shrink-0" :style="{ backgroundColor: currentUser.avatar_color }">
@@ -498,7 +498,7 @@
                                         <div class="flex items-center space-x-2.5 min-w-0">
                                             <div class="relative shrink-0">
                                                 <template x-if="u.avatar_url">
-                                                    <img :src="u.avatar_url" class="w-8 h-8 rounded-full object-cover border border-white shadow-xs">
+                                                    <img :src="u.avatar_url" @error="u.avatar_url = null" class="w-8 h-8 rounded-full object-cover border border-white shadow-xs">
                                                 </template>
                                                 <template x-if="!u.avatar_url">
                                                     <div class="w-8 h-8 rounded-full text-white font-bold text-xs flex items-center justify-center shadow-xs" :style="{ backgroundColor: u.avatar_color }">
@@ -542,7 +542,7 @@
                                         <div class="flex items-center space-x-2.5 truncate">
                                             <div class="relative shrink-0">
                                                 <template x-if="act.user && act.user.avatar_url">
-                                                    <img :src="act.user.avatar_url" class="w-7 h-7 rounded-full object-cover border border-white shadow-xs">
+                                                    <img :src="act.user.avatar_url" @error="act.user.avatar_url = null" class="w-7 h-7 rounded-full object-cover border border-white shadow-xs">
                                                 </template>
                                                 <template x-if="!act.user || !act.user.avatar_url">
                                                     <div class="w-7 h-7 rounded-full text-white font-bold text-[10px] flex items-center justify-center shrink-0" :style="{ backgroundColor: act.user ? act.user.avatar_color : '#3b82f6' }">
@@ -607,7 +607,7 @@
                                             <div class="flex items-center space-x-3 min-w-0">
                                                 <div class="relative shrink-0">
                                                     <template x-if="u.avatar_url">
-                                                        <img :src="u.avatar_url" class="w-10 h-10 rounded-xl object-cover border border-white shadow-xs">
+                                                        <img :src="u.avatar_url" @error="u.avatar_url = null" class="w-10 h-10 rounded-xl object-cover border border-white shadow-xs">
                                                     </template>
                                                     <template x-if="!u.avatar_url">
                                                         <div class="w-10 h-10 rounded-xl text-white font-bold text-sm flex items-center justify-center shadow-xs" :style="{ backgroundColor: u.avatar_color }">
@@ -2007,7 +2007,7 @@
                     <div class="flex items-end space-x-4">
                         <div class="relative">
                             <template x-if="selectedUserProfile && selectedUserProfile.avatar_url">
-                                <img :src="selectedUserProfile.avatar_url" class="w-24 h-24 rounded-3xl object-cover shadow-xl border-4 border-white dark:border-slate-800 shrink-0">
+                                <img :src="selectedUserProfile.avatar_url" @error="selectedUserProfile.avatar_url = null" class="w-24 h-24 rounded-3xl object-cover shadow-xl border-4 border-white dark:border-slate-800 shrink-0">
                             </template>
                             <template x-if="selectedUserProfile && !selectedUserProfile.avatar_url">
                                 <div class="w-24 h-24 rounded-3xl text-white font-extrabold text-3xl flex items-center justify-center shadow-xl border-4 border-white dark:border-slate-800 shrink-0" :style="{ backgroundColor: selectedUserProfile ? selectedUserProfile.avatar_color : '#3b82f6' }">
@@ -2318,6 +2318,6 @@
         </div>
     </div>
 
-    <script src="js/app.js?v=38"></script>
+    <script src="js/app.js?v=40"></script>
 </body>
 </html>
