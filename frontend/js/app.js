@@ -957,8 +957,13 @@ function taskTrackerApp() {
         },
 
         openAdminEditUserModal(user) {
-            let u = (typeof user === 'object' && user) ? user : this.usersList.find(x => x.id === user);
-            if (!u) return;
+            console.log("openAdminEditUserModal called with:", user);
+            let u = (typeof user === 'object' && user) ? user : this.usersList.find(x => String(x.id) === String(user));
+            if (!u) {
+                console.error("User not found in usersList:", user, this.usersList);
+                alert("Ошибка: Пользователь не найден.");
+                return;
+            }
             this.editingUserObj = u;
             this.adminEditUserForm = {
                 username: u.username || '',
@@ -995,7 +1000,7 @@ function taskTrackerApp() {
         },
 
         async adminDeleteUser(user) {
-            let u = (typeof user === 'object' && user) ? user : this.usersList.find(x => x.id === user);
+            let u = (typeof user === 'object' && user) ? user : this.usersList.find(x => String(x.id) === String(user));
             if (!u) return;
             if (!confirm(`Вы действительно хотите удалить сотрудника ${u.full_name} (@${u.username})?`)) return;
             try {
