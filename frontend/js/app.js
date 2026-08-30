@@ -27,6 +27,7 @@ function taskTrackerApp() {
         searchQuery: '',
         filterMyOnly: true,
         filterPriority: '',
+        filterStatus: '',
         filterAssignee: '',
         filterBugSeverity: '',
         filterBugStatus: '',
@@ -385,6 +386,7 @@ function taskTrackerApp() {
             try {
                 const params = new URLSearchParams();
                 if (this.filterMyOnly) params.append('my_tasks_only', 'true');
+                if (this.filterStatus) params.append('status', this.filterStatus);
                 if (this.filterPriority) params.append('priority', this.filterPriority);
                 if (this.filterAssignee) params.append('assignee_id', this.filterAssignee);
                 if (this.searchQuery) params.append('search', this.searchQuery);
