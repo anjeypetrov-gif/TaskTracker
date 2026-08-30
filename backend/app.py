@@ -205,7 +205,7 @@ def upload_avatar(
 
 # ----------------- Users Endpoints ----------------- #
 
-@app.get("/api/users", response_model=List[UserPublic])
+@app.get("/api/users", response_model=List[UserResponse])
 def get_users(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     users = db.query(User).all()
     now = datetime.now(timezone.utc)

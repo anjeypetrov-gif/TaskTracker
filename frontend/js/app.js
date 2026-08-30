@@ -906,6 +906,7 @@ function taskTrackerApp() {
                 if (this.selectedUserProfile && this.selectedUserProfile.id === updatedUser.id) {
                     this.selectedUserProfile = updatedUser;
                 }
+                alert('Профиль успешно сохранен!');
             } catch (e) {
                 alert(e.message);
             } finally {
