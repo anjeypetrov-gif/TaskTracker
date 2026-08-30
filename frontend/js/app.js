@@ -89,7 +89,7 @@ function taskTrackerApp() {
         kanbanColumns: [
             { status: 'todo', title: 'Новая', color: 'bg-slate-400' },
             { status: 'in_progress', title: 'В работе', color: 'bg-amber-500' },
-            { status: 'in_review', title: 'На проверке', color: 'bg-blue-500' },
+            { status: 'in_review', title: 'Проверка', color: 'bg-blue-500' },
             { status: 'done', title: 'Завершена', color: 'bg-emerald-500' },
             { status: 'on_hold', title: 'Отложена', color: 'bg-purple-500' }
         ],
@@ -862,7 +862,7 @@ function taskTrackerApp() {
             switch (status) {
                 case 'todo': return 'Новая';
                 case 'in_progress': return 'В работе';
-                case 'in_review': return 'На проверке';
+                case 'in_review': return 'Проверка';
                 case 'on_hold': return 'Отложена';
                 case 'done': return 'Завершена';
                 default: return status;
