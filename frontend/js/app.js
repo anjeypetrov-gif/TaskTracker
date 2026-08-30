@@ -836,7 +836,18 @@ function taskTrackerApp() {
             }
         },
 
+        closeAllModals() {
+            this.showDetailModal = false;
+            this.showUserProfileModal = false;
+            this.showEditProfileModal = false;
+            this.showAdminAddUserModal = false;
+            this.showAdminEditUserModal = false;
+            this.showCreateModal = false;
+            this.showReopenModal = false;
+        },
+
         openUserProfile(userId) {
+            this.closeAllModals();
             if (!userId) return;
             // The team list (/api/users) no longer includes payment_details —
             // it's private financial info and the API only returns it for the
@@ -881,6 +892,7 @@ function taskTrackerApp() {
         },
 
         openEditProfileModal() {
+            this.closeAllModals();
             this.editProfileForm = {
                 full_name: this.currentUser.full_name || '',
                 email: this.currentUser.email || '',
@@ -938,6 +950,7 @@ function taskTrackerApp() {
 
         openAdminAddUserModal() {
             console.log("openAdminAddUserModal called");
+            this.closeAllModals();
             this.adminAddUserForm = { username: '', full_name: '', password: '', email: '', role: 'Разработчик', role_description: '', payment_details: '' };
             this.showAdminAddUserModal = true;
             this.$nextTick(() => this.refreshIcons());
@@ -966,6 +979,7 @@ function taskTrackerApp() {
                 alert("Ошибка: Пользователь не найден.");
                 return;
             }
+            this.closeAllModals();
             this.editingUserObj = u;
             this.adminEditUserForm = {
                 username: u.username || '',
