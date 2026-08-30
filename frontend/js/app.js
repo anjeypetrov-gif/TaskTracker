@@ -957,17 +957,18 @@ function taskTrackerApp() {
         },
 
         openAdminEditUserModal(user) {
-            if (!user) return;
-            this.editingUserObj = user;
+            let u = (typeof user === 'object' && user) ? user : this.usersList.find(x => x.id === user);
+            if (!u) return;
+            this.editingUserObj = u;
             this.adminEditUserForm = {
-                username: user.username || '',
-                full_name: user.full_name || '',
-                email: user.email || '',
+                username: u.username || '',
+                full_name: u.full_name || '',
+                email: u.email || '',
                 password: '',
-                role: user.role || 'Разработчик',
-                role_description: user.role_description || '',
-                payment_details: user.payment_details || '',
-                avatar_color: user.avatar_color || '#3b82f6'
+                role: u.role || 'Разработчик',
+                role_description: u.role_description || '',
+                payment_details: u.payment_details || '',
+                avatar_color: u.avatar_color || '#3b82f6'
             };
             this.showAdminEditUserModal = true;
             this.$nextTick(() => this.refreshIcons());
@@ -994,13 +995,15 @@ function taskTrackerApp() {
         },
 
         async adminDeleteUser(user) {
-            if (!confirm(`Вы действительно хотите удалить сотрудника ${user.full_name} (@${user.username})?`)) return;
+            let u = (typeof user === 'object' && user) ? user : this.usersList.find(x => x.id === user);
+            if (!u) return;
+            if (!confirm(`Вы действительно хотите удалить сотрудника ${u.full_name} (@${u.username})?`)) return;
             try {
-                await this.apiFetch(`/api/admin/users/${user.id}`, { method: 'DELETE' });
+                await this.apiFetch(`/api/admin/users/${u.id}`, { method: 'DELETE' });
                 await this.fetchUsers();
                 await this.fetchUserActivities();
                 await this.fetchTasks();
-                alert(`Сотрудник ${user.full_name} удален из системы.`);
+                alert(`Сотрудник ${u.full_name} удален из системы.`);
             } catch (e) {
                 alert(e.message);
             }
